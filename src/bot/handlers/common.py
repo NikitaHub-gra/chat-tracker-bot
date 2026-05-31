@@ -224,16 +224,33 @@ async def handle_business_messages(message: types.Message):
 @router.message()
 async def handle_group_messages(message: types.Message):
     """Ловим все сообщения в рабочих группах поддержки с поштучным контролем юзеров"""
+    
+    print(f"\n{'='*50}")
+    print(f"📥 [ГРУППА] НОВОЕ СООБЩЕНИЕ")
+    print(f"   message_id: {message.message_id}")
+    print(f"   chat.type: {message.chat.type}")
+    print(f"   chat.id: {message.chat.id}")
+    print(f"   chat.title: {message.chat.title}")
+    print(f"   from_user.id: {message.from_user.id if message.from_user else 'None'}")
+    print(f"   from_user.full_name: {message.from_user.full_name if message.from_user else 'None'}")
+    print(f"   text: {message.text[:50] if message.text else 'None'}")
+    print(f"   has reply_to_message: {bool(message.reply_to_message)}")
+    print(f"{'='*50}\n")
+
     if message.chat.type == "private" or not message.from_user:
+        print("⛔ [ГРУППА] Чат private или нет from_user — выход")
         return
 
     if message.text and message.text.startswith("/"):
+        print("⛔ [ГРУППА] Сообщение начинается с / — выход")
         return
 
     user_id = str(message.from_user.id)
+    print(f"🔍 [ГРУППА] user_id отправителя: {user_id}")
 
     is_ignored = await db.ignoreduser.find_unique(where={"id": user_id})
     if is_ignored:
+        print(f"⛔ [ГРУППА] Пользователь {user_id} в ЧС — выход")
         return
 
     chat_id = str(message.chat.id)
@@ -243,55 +260,94 @@ async def handle_group_messages(message: types.Message):
 
     config = await db.systemconfig.find_first()
     if config and config.alertChatId == chat_id:
+        print(f"⛔ [ГРУППА] Это alert-чат ({chat_id}) — выход")
         return
 
     try:
         engineer = await db.engineer.find_unique(where={"telegramId": user_id})
+        print(f"🔍 [ГРУППА] Инженер найден: {bool(engineer)} (tg_id={user_id})")
 
         if engineer:
-            # === ПИШЕТ ИНЖЕНЕР ===
-            if message.reply_to_message and message.reply_to_message.from_user:
-                replied_user = message.reply_to_message.from_user
-                replied_user_id = str(replied_user.id)
-                
-                is_replied_to_engineer = await db.engineer.find_unique(where={"telegramId": replied_user_id})
-                
-                if not is_replied_to_engineer:
-                    target_ticket = await db.activechat.find_unique(
+            print(f"🔧 [ГРУППА] === ОБРАБОТКА ИНЖЕНЕРА ===")
+            print(f"   engineer.id: {engineer.id}")
+            print(f"   engineer.name: {engineer.name}")
+            print(f"   message.reply_to_message: {message.reply_to_message}")
+
+            if not message.reply_to_message:
+                print(f"⚠️ [ГРУППА] Нет reply_to_message — выход")
+                return
+
+            print(f"   reply_to_message.message_id: {message.reply_to_message.message_id}")
+            print(f"   reply_to_message.from_user: {message.reply_to_message.from_user}")
+
+            if not message.reply_to_message.from_user:
+                print(f"⚠️ [ГРУППА] reply_to_message.from_user is None — выход")
+                return
+
+            replied_user = message.reply_to_message.from_user
+            replied_user_id = str(replied_user.id)
+            print(f"   replied_user.id: {replied_user_id}")
+            print(f"   replied_user.full_name: {replied_user.full_name}")
+            print(f"   replied_user.is_bot: {replied_user.is_bot}")
+
+            is_replied_to_engineer = await db.engineer.find_unique(where={"telegramId": replied_user_id})
+            print(f"   is_replied_to_engineer: {bool(is_replied_to_engineer)}")
+
+            if is_replied_to_engineer:
+                print(f"ℹ️ [ГРУППА] Инженер ответил инженеру ({replied_user_id}). Игнорируем — выход")
+                return
+
+            print(f"🔍 [ГРУППА] Ищем тикет: chatId={chat_id}, userId={replied_user_id}")
+            target_ticket = await db.activechat.find_unique(
+                where={
+                    "chatId_userId": {
+                        "chatId": chat_id,
+                        "userId": replied_user_id
+                    }
+                }
+            )
+            print(f"   target_ticket найден: {bool(target_ticket)}")
+            if target_ticket:
+                print(f"   target_ticket.status: {target_ticket.status}")
+                print(f"   target_ticket.clientName: {target_ticket.clientName}")
+                print(f"   target_ticket.engineerId: {target_ticket.engineerId}")
+
+            if target_ticket:
+                print(f"✏️ [ГРУППА] Обновляем тикет на answered...")
+                try:
+                    updated = await db.activechat.update(
                         where={
                             "chatId_userId": {
                                 "chatId": chat_id,
                                 "userId": replied_user_id
                             }
+                        },
+                        data={
+                            "status": "answered",
+                            "engineerId": engineer.id,
+                            "isAlerted": False,
+                            "lastMessage": f"Ответ для {replied_user.full_name}: {message_text}",
+                            "updatedAt": datetime.now(timezone.utc)
                         }
                     )
-                    
-                    if target_ticket:
-                        await db.activechat.update(
-                            where={
-                                "chatId_userId": {
-                                    "chatId": chat_id,
-                                    "userId": replied_user_id
-                                }
-                            },
-                            data={
-                                "status": "answered",
-                                "engineerId": engineer.id,
-                                "isAlerted": False,
-                                "lastMessage": f"Ответ для {replied_user.full_name}: {message_text}",
-                                "updatedAt": datetime.now(timezone.utc)
-                            }
-                        )
-                        print(f"✅ [Группа] Инженер закрыл вопрос клиента {replied_user.full_name} в чате {chat_title}")
-                    else:
-                        print(f"ℹ️ [Группа] Ответ зафиксирован, но активного тикета для {replied_user.full_name} не было в БД.")
-                else:
-                    print(f"ℹ️ [Группа] Инженер ответил инженеру. Игнорируем.")
+                    print(f"✅ [ГРУППА] Тикет УСПЕШНО обновлён! Новый статус: {updated.status}")
+                except Exception as update_err:
+                    print(f"❌ [ГРУППА] ОШИБКА при обновлении тикета: {update_err}")
+                    raise
             else:
-                print(f"⚠️ [Группа] Инженер написал без Reply. Таймеры клиентов продолжают тикать.")
+                print(f"ℹ️ [ГРУППА] Тикет НЕ НАЙДЕН в БД: chatId={chat_id}, userId={replied_user_id}")
+                # Дополнительно: покажем все открытые тикеты в этом чате для сравнения
+                all_opened = await db.activechat.find_many(
+                    where={"chatId": chat_id, "status": "opened"}
+                )
+                print(f"   Всего открытых тикетов в этом чате: {len(all_opened)}")
+                for t in all_opened:
+                    print(f"      - userId={t.userId}, clientName={t.clientName}")
+            print(f"🔧 [ГРУППА] === КОНЕЦ БЛОКА ИНЖЕНЕРА ===")
             return
 
         # === ПИШЕТ КЛИЕНТ ===
+        print(f"👤 [ГРУППА] === ОБРАБОТКА КЛИЕНТА ===")
         existing_ticket = await db.activechat.find_unique(
             where={
                 "chatId_userId": {
@@ -300,12 +356,11 @@ async def handle_group_messages(message: types.Message):
                 }
             }
         )
-
+        # ... остальной код клиента без изменений ...
         client_name = message.from_user.full_name
 
         if existing_ticket:
             is_already_opened = existing_ticket.status == "opened"
-            
             await db.activechat.update(
                 where={
                     "chatId_userId": {
@@ -323,7 +378,7 @@ async def handle_group_messages(message: types.Message):
                     "updatedAt": existing_ticket.updatedAt if is_already_opened else datetime.now(timezone.utc)
                 }
             )
-            print(f"📥 [Группа] ... Клиент {client_name} дополнил вопрос. Таймер удержан.")
+            print(f"📥 [ГРУППА] Клиент {client_name} дополнил вопрос. Таймер удержан.")
         else:
             await db.activechat.create(
                 data={
@@ -338,10 +393,11 @@ async def handle_group_messages(message: types.Message):
                     "updatedAt": datetime.now(timezone.utc)
                 }
             )
-            print(f"✅ [Группа] Создан отдельный тикет для клиента {client_name} в чате {chat_title}")
+            print(f"✅ [ГРУППА] Создан тикет для клиента {client_name}")
 
     except Exception as e:
         logger.error(f"❌ Ошибка в групповом обработчике: {e}", exc_info=True)
+        print(f"❌ [ГРУППА] ИСКЛЮЧЕНИЕ: {e}")
 
 
 # =====================================================================

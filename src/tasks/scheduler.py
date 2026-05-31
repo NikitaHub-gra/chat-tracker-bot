@@ -38,12 +38,12 @@ async def check_forgotten_chats_loop():
                     # 1. Безопасно определяем, кого тегать
                     engineer_mention = "Не назначен"
                     if chat.engineerId and chat.engineer:
-                        engineer_mention = f"{chat.engineer.username}" if chat.engineer.username else chat.engineer.name
+                        engineer_mention = f"@{chat.engineer.username}" if chat.engineer.username else chat.engineer.name
                     elif chat.engineerId:
                         # На случай, если id есть, но связь не подгрузилась через include
                         eng = await db.engineer.find_unique(where={"id": chat.engineerId})
                         if eng:
-                            engineer_mention = f"{eng.username}" if eng.username else eng.name
+                            engineer_mention = f"@{eng.username}" if eng.username else eng.name
 
                     # 2. Формируем текст сообщения
                     alert_text = (
