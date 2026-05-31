@@ -49,7 +49,12 @@ async def handle_business_messages(message: types.Message):
 
     if not message.from_user:
         return
-
+    
+    user_id = str(message.from_user.id)
+    is_ignored = await db.ignoreduser.find_unique(where={"id": user_id})
+    if is_ignored:
+        print(f"🤫 [Бизнес-чат] Сообщение от {user_id} проигнорировано (пользователь в ЧС бота)")
+        return
     chat_id = str(message.chat.id)
     client_name = message.from_user.full_name
     message_text = message.text or message.caption or "[Медиафайл]"
@@ -72,7 +77,7 @@ async def handle_business_messages(message: types.Message):
                     await db.activechat.update(
                         where={"id": chat_id},
                         data={
-                            "status": "opened",
+                            "status": "answered",
                             "engineerId": engineer.id,
                             "isAlerted": False,
                             "lastMessage": message_text,
@@ -97,13 +102,15 @@ async def handle_business_messages(message: types.Message):
             # Пишет клиент инженеру в личку
             existing_chat = await db.activechat.find_unique(where={"id": chat_id})
             if existing_chat:
+                is_already_opened = existing_chat.status == "opened"
                 await db.activechat.update(
                     where={"id": chat_id},
                     data={
+                        "status": "opened",
                         "clientName": f"ЛС: {client_name}",
                         "lastMessage": message_text,
                         "isAlerted": False,
-                        "updatedAt": datetime.utcnow()
+                        "updatedAt": existing_chat.updatedAt if is_already_opened else datetime.utcnow()
                     }
                 )
             else:
@@ -138,6 +145,13 @@ async def handle_group_messages(message: types.Message):
     # Если это команда — отдаем её дальше админскому роутеру
     if message.text and message.text.startswith("/"):
         return
+    user_id_check = str(message.from_user.id)
+
+
+    is_ignored = await db.ignoreduser.find_unique(where={"id": user_id_check})
+    if is_ignored:
+        print(f"🤫 [Группа] Сообщение от {user_id_check} проигнорировано (пользователь в ЧС бота)")
+        return
 
     chat_id = str(message.chat.id)
     chat_title = message.chat.title
@@ -162,7 +176,7 @@ async def handle_group_messages(message: types.Message):
                 await db.activechat.update(
                     where={"id": chat_id},
                     data={
-                        "status": "opened",
+                        "status": "answered",
                         "engineerId": engineer.id,
                         "isAlerted": False,
                         "lastMessage": message_text,
@@ -186,12 +200,15 @@ async def handle_group_messages(message: types.Message):
         else:
             # Сообщение от клиента в группе
             if existing_chat:
+                is_already_opened = existing_chat.status == "opened"
                 await db.activechat.update(
                     where={"id": chat_id},
                     data={
+                        "externalChatUrl": chat_url,
+                        "status": "opened",
                         "lastMessage": message_text,
                         "isAlerted": False,
-                        "updatedAt": datetime.utcnow()
+                        "updatedAt": existing_chat.updatedAt if is_already_opened else datetime.utcnow()
                     }
                 )
             else:

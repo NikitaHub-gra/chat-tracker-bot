@@ -16,6 +16,75 @@ async def is_has_admin_rights(tg_id: str) -> bool:
     admin_exists = await db.adminuser.find_unique(where={"telegramId": tg_id})
     return admin_exists is not None
 
+
+
+@router.message(Command("ignore_user"))
+async def cmd_ignore_user(message: types.Message):
+    if not message.from_user or not await is_has_admin_rights(str(message.from_user.id)):
+        await message.reply("⛔️ У вас нет прав на управление исключениями.")
+        return
+
+    args = message.text.split() if message.text else []
+    if len(args) < 2:
+        await message.reply("ℹ️ Формат: <code>/ignore_user ТГ_ID @username</code>\nИли ответьте командой <code>/ignore_user</code> на сообщение пользователя в группе.")
+        return
+
+    target_id = args[1]
+    target_username = args[2] if len(args) > 2 else "User"
+
+    # Если админ ответил на чье-то сообщение в группе
+    if message.reply_to_message and message.reply_to_message.from_user:
+        target_id = str(message.reply_to_message.from_user.id)
+        target_username = f"@{message.reply_to_message.from_user.username}" if message.reply_to_message.from_user.username else message.reply_to_message.from_user.full_name
+
+    await db.ignoreduser.upsert(
+        where={"id": target_id},
+        data={
+            "create": {"id": target_id, "username": target_username},
+            "update": {"username": target_username}
+        }
+    )
+    await message.reply(f"🚫 Пользователь <code>{target_id}</code> ({target_username}) добавлен в список исключений. Бот больше его не трекает.")
+
+
+@router.message(Command("unignore_user"))
+async def cmd_unignore_user(message: types.Message):
+    if not message.from_user or not await is_has_admin_rights(str(message.from_user.id)):
+        await message.reply("⛔️ У вас нет прав на управление исключениями.")
+        return
+
+    args = message.text.split() if message.text else []
+    if len(args) < 2 and not message.reply_to_message:
+        await message.reply("ℹ️ Формат: <code>/unignore_user ТГ_ID</code>\nИли ответьте командой на сообщение.")
+        return
+
+    target_id = args[1] if len(args) > 1 else str(message.reply_to_message.from_user.id)
+
+    try:
+        await db.ignoreduser.delete(where={"id": target_id})
+        await message.reply(f"✅ Пользователь <code>{target_id}</code> удален из исключений.")
+    except Exception:
+        await message.reply("❌ Пользователь не найден в списке исключений.")
+
+
+@router.message(Command("ignore_list"))
+async def cmd_ignore_list(message: types.Message):
+    if not message.from_user or not await is_has_admin_rights(str(message.from_user.id)):
+        await message.reply("⛔️ Доступ ограничен.")
+        return
+
+    users = await db.ignoreduser.find_many()
+    if not users:
+        await message.reply("Список исключений пуст.")
+        return
+
+    text = "📋 <b>Игнорируемые пользователи:</b>\n\n"
+    for u in users:
+        text += f"• <code>{u.id}</code> — {u.username}\n"
+    
+    await message.reply(text)
+
+
 @router.message(Command("help"))
 async def cmd_help(message: types.Message):
     """Единая команда помощи для всех пользователей"""
@@ -37,6 +106,9 @@ async def cmd_help(message: types.Message):
             "🛠 <b>Команды администратора:</b>\n"
             "▶️ /set_alert_chat — Вызовите внутри группы/канала, куда бот должен присылать уведомления о просрочках.\n"
             "▶️ /set_timeout — Установить время ожидания ответа (в личке бота).\n\n"
+            "▶️ /ignore_user — Добавить пользователя в ЧС бота\n\n"
+            "▶️ /unignore_user — Удалить пользователя из ЧС бота\n\n"
+            "▶️ /ignore_list — Показать список игнорируемых пользователей\n\n"
         )
     
     if is_super:
@@ -44,6 +116,9 @@ async def cmd_help(message: types.Message):
             "👑 <b>Команды Главного Админа:</b>\n"
             "▶️ <code>/add_admin ТГ_ID @username</code> — Добавить админа\n"
             "▶️ <code>/del_admin ТГ_ID</code> — Удалить админа\n"
+            "▶️ <code>/ignore_user ТГ_ID @username</code> — Добавить пользователя в ЧС бота\n"
+            "▶️ <code>/unignore_user ТГ_ID</code> — Удалить пользователя из ЧС бота\n"
+            "▶️ <code>/ignore_list</code> — Показать список игнорируемых пользователей\n"
         )
 
     await message.reply(text)

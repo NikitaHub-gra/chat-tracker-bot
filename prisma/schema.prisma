@@ -44,3 +44,9 @@ model AdminUser {
   username   String?  // @username админа
   createdAt  DateTime @default(now())
 }
+
+model IgnoredUser {
+  id         String   @id // Telegram ID пользователя
+  username   String?  // Юзернейм для удобства отображения в списке
+  createdAt  DateTime @default(now())
+}
