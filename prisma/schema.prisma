@@ -1,0 +1,46 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model SystemConfig {
+  id             Int      @id @default(autoincrement())
+  waitTimeoutMin Int      @default(15)
+  alertChatId    String   // ID чата, куда бот будет слать алерты
+  updatedAt      DateTime @updatedAt
+}
+
+model ActiveChat {
+  id              String    @id
+  clientName      String
+  externalChatUrl String
+  lastMessage     String    // В SQLite это автоматически текстовое поле
+  status          String    // "waiting", "opened", "answered", "closed"
+  engineerId      Int?
+  isAlerted       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  engineer        Engineer? @relation(fields: [engineerId], references: [id])
+}
+
+model Engineer {
+  id         Int          @id @default(autoincrement())
+  telegramId String       @unique
+  username   String       // Например, @ivan_dev
+  name       String
+  chats      ActiveChat[]
+}
+
+model AdminUser {
+  id         Int      @id @default(autoincrement())
+  telegramId String   @unique
+  username   String?  // @username админа
+  createdAt  DateTime @default(now())
+}
