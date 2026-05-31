@@ -17,17 +17,20 @@ model SystemConfig {
 }
 
 model ActiveChat {
-  id              String    @id
-  clientName      String
+  chatId          String
+  userId          String
+  clientName      String    // Имя конкретного клиента (например, "Say" или "Никита")
+  chatTitle       String    // Название группы (для алертов, например, "ТЕСТИМ БОТА")
   externalChatUrl String
-  lastMessage     String    // В SQLite это автоматически текстовое поле
-  status          String    // "waiting", "opened", "answered", "closed"
-  engineerId      Int?
+  lastMessage     String
+  status          String    // "opened" / "answered"
   isAlerted       Boolean   @default(false)
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
+  updatedAt       DateTime  @default(now())
+  engineerId      Int?
   engineer        Engineer? @relation(fields: [engineerId], references: [id])
+
+  @@id([chatId, userId]) // Составной ключ: уникальность в рамках чата для каждого юзера
 }
 
 model Engineer {

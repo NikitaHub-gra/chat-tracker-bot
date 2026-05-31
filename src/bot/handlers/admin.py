@@ -99,6 +99,7 @@ async def cmd_help(message: types.Message):
         "🤖 <b>Система контроля ответов поддержки</b>\n\n"
         "<b>Для инженеров:</b>\n"
         "▶️ /start — Зарегистрироваться в боте как инженер (активировать теги)\n\n"
+        "▶️ /active — Получить список активных чатов\n\n"
     )
 
     if is_admin:
@@ -109,6 +110,8 @@ async def cmd_help(message: types.Message):
             "▶️ /ignore_user — Добавить пользователя в ЧС бота\n\n"
             "▶️ /unignore_user — Удалить пользователя из ЧС бота\n\n"
             "▶️ /ignore_list — Показать список игнорируемых пользователей\n\n"
+            "▶️ /active — Получить список активных чатов\n\n"
+
         )
     
     if is_super:
@@ -119,6 +122,7 @@ async def cmd_help(message: types.Message):
             "▶️ <code>/ignore_user ТГ_ID @username</code> — Добавить пользователя в ЧС бота\n"
             "▶️ <code>/unignore_user ТГ_ID</code> — Удалить пользователя из ЧС бота\n"
             "▶️ <code>/ignore_list</code> — Показать список игнорируемых пользователей\n"
+            "▶️ /active — Получить список активных чатов\n\n"
         )
 
     await message.reply(text)

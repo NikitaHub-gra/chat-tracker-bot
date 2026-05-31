@@ -1,7 +1,11 @@
 import logging
-from datetime import datetime
-from aiogram import Router, types
-from aiogram.filters import CommandStart
+from datetime import datetime, timezone  # Изменено: добавлен явный импорт timezone
+from aiogram import Router, types, F
+from aiogram.filters import CommandStart, Command
+from aiogram.types import (
+    InlineQuery, InlineQueryResultArticle, 
+    InputTextMessageContent, ChosenInlineResult
+)
 from src.database.db import db
 
 # Настраиваем логгер для вывода ошибок в консоль
@@ -36,6 +40,53 @@ async def cmd_start(message: types.Message):
         logger.error(f"❌ Ошибка регистрации инженера в БД: {e}", exc_info=True)
 
 
+@router.message(Command("active"))
+async def cmd_get_opened_chats(message: types.Message):
+    """Выводит список всех чатов, которые сейчас находятся в статусе opened"""
+    if not message.from_user:
+        return
+
+    user_id = str(message.from_user.id)
+    print(f"🔍 Кто-то вызвал /active. ID пользователя: {user_id}")
+
+    # Проверяем, имеет ли право пользователь смотреть этот список
+    is_engineer = await db.engineer.find_unique(where={"telegramId": user_id})
+    
+    from src.bot.handlers.admin import is_has_admin_rights 
+    is_admin = await is_has_admin_rights(user_id)
+    print(f"📊 Права пользователя {user_id}: Инженер={bool(is_engineer)}, Админ={bool(is_admin)}")
+
+    if not is_engineer and not is_admin:
+        await message.reply("У вас нет доступа к этой команде.")
+        return
+
+    # Получаем из базы все открытые тикеты
+    opened_tickets = await db.activechat.find_many(
+        where={"status": "opened"},
+        order={"updatedAt": "asc"}
+    )
+
+    if not opened_tickets:
+        await message.reply("🎉 <b>Идеально!</b> Нет ни одного чата, ожидающего ответа. Все клиенты обработаны.")
+        return
+
+    text = f"⏳ <b>Список чатов, ожидающих ответа ({len(opened_tickets)}):</b>\n\n"
+    
+    for idx, ticket in enumerate(opened_tickets, 1):
+        now = datetime.now(timezone.utc)
+        waiting_time = now - ticket.updatedAt
+        minutes_waiting = int(waiting_time.total_seconds() / 60)
+
+        text += (
+            f"{idx}. 👥 <b>{ticket.chatTitle}</b>\n"
+            f"   👤 Клиент: <code>{ticket.clientName}</code>\n"
+            f"   💬 Последнее: <i>\"{ticket.lastMessage}\"</i>\n"
+            f"   ⏰ Ждет: <b>{minutes_waiting} мин.</b>\n"
+            f"   🏃‍♂️ <a href='{ticket.externalChatUrl}'>Перейти к сообщению</a>\n\n"
+        )
+    await message.reply(text, disable_web_page_preview=True, parse_mode="HTML")
+
+
 # =====================================================================
 # 1. СЕКРЕТАРЬ: Контроль личных сообщений (Telegram Business)
 # =====================================================================
@@ -43,92 +94,127 @@ async def cmd_start(message: types.Message):
 @router.business_message()
 async def handle_business_messages(message: types.Message):
     """Ловит все сообщения в личных чатах инженера через Telegram Business"""
-    # Если это текстовая команда — игнорируем её
     if message.text and message.text.startswith("/"):
         return
 
     if not message.from_user:
         return
-    
+
     user_id = str(message.from_user.id)
+
+    # 1. Проверка на ручные исключения (ЧС бота)
     is_ignored = await db.ignoreduser.find_unique(where={"id": user_id})
     if is_ignored:
-        print(f"🤫 [Бизнес-чат] Сообщение от {user_id} проигнорировано (пользователь в ЧС бота)")
         return
+
     chat_id = str(message.chat.id)
     client_name = message.from_user.full_name
     message_text = message.text or message.caption or "[Медиафайл]"
     chat_url = f"tg://user?id={chat_id}"
 
-    # Определяем, кто написал (если ID отправителя равен ID чата — пишет клиент)
+    # Определяем, кто пишет в бизнес-пространстве (в ЛС userId равен chatId)
     is_client = message.from_user.id == message.chat.id
 
-    print(f"📥 [Бизнес-чат] Новое сообщение в ЛС от {'Клиента' if is_client else 'Инженера'} (Чат ID: {chat_id})")
-
     try:
-        if not is_client:
-            # Пишет сам инженер со своего аккаунта
-            engineer_tg_id = str(message.from_user.id)
-            engineer = await db.engineer.find_unique(where={"telegramId": engineer_tg_id})
-            
-            if engineer:
-                existing_chat = await db.activechat.find_unique(where={"id": chat_id})
+        # Проверяем, является ли отправитель инженером
+        engineer = await db.engineer.find_unique(where={"telegramId": user_id})
+
+        if engineer:
+            # === ПИШЕТ ИНЖЕНЕР (Владелец аккаунта отвечает клиенту) ===
+            if not is_client:
+                # В ЛС ID клиента равен ID чата (chat_id)
+                existing_chat = await db.activechat.find_unique(
+                    where={
+                        "chatId_userId": {
+                            "chatId": chat_id,
+                            "userId": chat_id
+                        }
+                    }
+                )
                 if existing_chat:
                     await db.activechat.update(
-                        where={"id": chat_id},
+                        where={
+                            "chatId_userId": {
+                                "chatId": chat_id,
+                                "userId": chat_id
+                            }
+                        },
                         data={
                             "status": "answered",
                             "engineerId": engineer.id,
                             "isAlerted": False,
                             "lastMessage": message_text,
-                            "updatedAt": datetime.utcnow()
+                            "updatedAt": datetime.now(timezone.utc)
                         }
                     )
                 else:
                     await db.activechat.create(
                         data={
-                            "id": chat_id,
+                            "chatId": chat_id,
+                            "userId": chat_id,
+                            "chatTitle": "Личные сообщения",
                             "clientName": f"ЛС: {client_name}",
                             "externalChatUrl": chat_url,
                             "lastMessage": message_text,
-                            "status": "opened",
+                            "status": "answered",
                             "engineerId": engineer.id,
                             "isAlerted": False,
-                            "updatedAt": datetime.utcnow()
+                            "updatedAt": datetime.now(timezone.utc)
                         }
                     )
-                print(f"✅ [Бизнес-чат] Статус обновлен инженером {engineer.username}")
+                print(f"✅ [Бизнес-чат] Ответ инженера записан, статус: answered")
+            return 
+
+        # === ПИШЕТ КЛИЕНТ В ЛС ИНЖЕНЕРУ ===
+        if await db.engineer.find_unique(where={"telegramId": chat_id}):
+            print(f"🤫 [Бизнес-чат] В личку инженеру написал другой инженер ({chat_id}). Игнорируем.")
+            return
+
+        existing_chat = await db.activechat.find_unique(
+            where={
+                "chatId_userId": {
+                    "chatId": chat_id,
+                    "userId": chat_id
+                }
+            }
+        )
+        if existing_chat:
+            is_already_opened = existing_chat.status == "opened"
+            await db.activechat.update(
+                where={
+                    "chatId_userId": {
+                        "chatId": chat_id,
+                        "userId": chat_id
+                    }
+                },
+                data={
+                    "status": "opened",
+                    "clientName": f"ЛС: {client_name}",
+                    "chatTitle": "Личные сообщения",
+                    "lastMessage": message_text,
+                    "externalChatUrl": chat_url,
+                    "isAlerted": False,
+                    "updatedAt": existing_chat.updatedAt if is_already_opened else datetime.now(timezone.utc)
+                }
+            )
         else:
-            # Пишет клиент инженеру в личку
-            existing_chat = await db.activechat.find_unique(where={"id": chat_id})
-            if existing_chat:
-                is_already_opened = existing_chat.status == "opened"
-                await db.activechat.update(
-                    where={"id": chat_id},
-                    data={
-                        "status": "opened",
-                        "clientName": f"ЛС: {client_name}",
-                        "lastMessage": message_text,
-                        "isAlerted": False,
-                        "updatedAt": existing_chat.updatedAt if is_already_opened else datetime.utcnow()
-                    }
-                )
-            else:
-                await db.activechat.create(
-                    data={
-                        "id": chat_id,
-                        "clientName": f"ЛС: {client_name}",
-                        "externalChatUrl": chat_url,
-                        "lastMessage": message_text,
-                        "status": "opened",
-                        "isAlerted": False,
-                        "updatedAt": datetime.utcnow()
-                    }
-                )
-            print(f"✅ [Бизнес-чат] Зафиксирована активность клиента")
+            await db.activechat.create(
+                data={
+                    "chatId": chat_id,
+                    "userId": chat_id,
+                    "chatTitle": "Личные сообщения",
+                    "clientName": f"ЛС: {client_name}",
+                    "externalChatUrl": chat_url,
+                    "lastMessage": message_text,
+                    "status": "opened",
+                    "isAlerted": False,
+                    "updatedAt": datetime.now(timezone.utc)
+                }
+            )
+        print(f"✅ [Бизнес-чат] Новое сообщение от клиента в ЛС. Статус: opened.")
 
     except Exception as e:
-        logger.error(f"❌ Ошибка сохранения бизнес-сообщения в SQLite: {e}", exc_info=True)
+        logger.error(f"❌ Ошибка в бизнес-чате: {e}", exc_info=True)
 
 
 # =====================================================================
@@ -137,93 +223,293 @@ async def handle_business_messages(message: types.Message):
 
 @router.message()
 async def handle_group_messages(message: types.Message):
-    """Ловим все сообщения в рабочих группах поддержки"""
-    # Пропускаем личные сообщения (их обрабатывает команда /start или секретарь)
+    """Ловим все сообщения в рабочих группах поддержки с поштучным контролем юзеров"""
     if message.chat.type == "private" or not message.from_user:
         return
 
-    # Если это команда — отдаем её дальше админскому роутеру
     if message.text and message.text.startswith("/"):
         return
-    user_id_check = str(message.from_user.id)
 
+    user_id = str(message.from_user.id)
 
-    is_ignored = await db.ignoreduser.find_unique(where={"id": user_id_check})
+    is_ignored = await db.ignoreduser.find_unique(where={"id": user_id})
     if is_ignored:
-        print(f"🤫 [Группа] Сообщение от {user_id_check} проигнорировано (пользователь в ЧС бота)")
         return
 
     chat_id = str(message.chat.id)
-    chat_title = message.chat.title
-    user_id = str(message.from_user.id)
+    chat_title = message.chat.title or "Группа поддержки"
     message_text = message.text or message.caption or "[Медиафайл]"
     chat_url = f"https://t.me/c/{chat_id.replace('-100', '')}/{message.message_id}"
 
-    # Проверяем, не является ли группа чатом для алертов
     config = await db.systemconfig.find_first()
     if config and config.alertChatId == chat_id:
         return
 
-    print(f"📥 [Группа] Новое сообщение в '{chat_title}' (ID: {chat_id}) от ID {user_id}")
-
     try:
         engineer = await db.engineer.find_unique(where={"telegramId": user_id})
-        existing_chat = await db.activechat.find_unique(where={"id": chat_id})
 
         if engineer:
-            # Сообщение от инженера в группе
-            if existing_chat:
-                await db.activechat.update(
-                    where={"id": chat_id},
-                    data={
-                        "status": "answered",
-                        "engineerId": engineer.id,
-                        "isAlerted": False,
-                        "lastMessage": message_text,
-                        "updatedAt": datetime.utcnow()
-                    }
-                )
+            # === ПИШЕТ ИНЖЕНЕР ===
+            if message.reply_to_message and message.reply_to_message.from_user:
+                replied_user = message.reply_to_message.from_user
+                replied_user_id = str(replied_user.id)
+                
+                is_replied_to_engineer = await db.engineer.find_unique(where={"telegramId": replied_user_id})
+                
+                if not is_replied_to_engineer:
+                    target_ticket = await db.activechat.find_unique(
+                        where={
+                            "chatId_userId": {
+                                "chatId": chat_id,
+                                "userId": replied_user_id
+                            }
+                        }
+                    )
+                    
+                    if target_ticket:
+                        await db.activechat.update(
+                            where={
+                                "chatId_userId": {
+                                    "chatId": chat_id,
+                                    "userId": replied_user_id
+                                }
+                            },
+                            data={
+                                "status": "answered",
+                                "engineerId": engineer.id,
+                                "isAlerted": False,
+                                "lastMessage": f"Ответ для {replied_user.full_name}: {message_text}",
+                                "updatedAt": datetime.now(timezone.utc)
+                            }
+                        )
+                        print(f"✅ [Группа] Инженер закрыл вопрос клиента {replied_user.full_name} в чате {chat_title}")
+                    else:
+                        print(f"ℹ️ [Группа] Ответ зафиксирован, но активного тикета для {replied_user.full_name} не было в БД.")
+                else:
+                    print(f"ℹ️ [Группа] Инженер ответил инженеру. Игнорируем.")
             else:
-                await db.activechat.create(
-                    data={
-                        "id": chat_id,
-                        "clientName": f"Группа: {chat_title}",
-                        "externalChatUrl": chat_url,
-                        "lastMessage": message_text,
-                        "status": "opened",
-                        "engineerId": engineer.id,
-                        "isAlerted": False,
-                        "updatedAt": datetime.utcnow()
+                print(f"⚠️ [Группа] Инженер написал без Reply. Таймеры клиентов продолжают тикать.")
+            return
+
+        # === ПИШЕТ КЛИЕНТ ===
+        existing_ticket = await db.activechat.find_unique(
+            where={
+                "chatId_userId": {
+                    "chatId": chat_id,
+                    "userId": user_id
+                }
+            }
+        )
+
+        client_name = message.from_user.full_name
+
+        if existing_ticket:
+            is_already_opened = existing_ticket.status == "opened"
+            
+            await db.activechat.update(
+                where={
+                    "chatId_userId": {
+                        "chatId": chat_id,
+                        "userId": user_id
                     }
-                )
-            print(f"✅ [Группа] Ответ инженера {engineer.username} записан")
+                },
+                data={
+                    "status": "opened",
+                    "clientName": client_name,
+                    "chatTitle": chat_title,
+                    "lastMessage": message_text,
+                    "externalChatUrl": chat_url,
+                    "isAlerted": False,
+                    "updatedAt": existing_ticket.updatedAt if is_already_opened else datetime.now(timezone.utc)
+                }
+            )
+            print(f"📥 [Группа] ... Клиент {client_name} дополнил вопрос. Таймер удержан.")
         else:
-            # Сообщение от клиента в группе
-            if existing_chat:
-                is_already_opened = existing_chat.status == "opened"
-                await db.activechat.update(
-                    where={"id": chat_id},
-                    data={
-                        "externalChatUrl": chat_url,
-                        "status": "opened",
-                        "lastMessage": message_text,
-                        "isAlerted": False,
-                        "updatedAt": existing_chat.updatedAt if is_already_opened else datetime.utcnow()
-                    }
-                )
-            else:
-                await db.activechat.create(
-                    data={
-                        "id": chat_id,
-                        "clientName": f"Группа: {message.from_user.full_name}",
-                        "externalChatUrl": chat_url,
-                        "lastMessage": message_text,
-                        "status": "opened",
-                        "isAlerted": False,
-                        "updatedAt": datetime.utcnow()
-                    }
-                )
-            print("✅ [Группа] Обращение клиента записано/обновлено")
+            await db.activechat.create(
+                data={
+                    "chatId": chat_id,
+                    "userId": user_id,
+                    "clientName": client_name,
+                    "chatTitle": chat_title,
+                    "externalChatUrl": chat_url,
+                    "lastMessage": message_text,
+                    "status": "opened",
+                    "isAlerted": False,
+                    "updatedAt": datetime.now(timezone.utc)
+                }
+            )
+            print(f"✅ [Группа] Создан отдельный тикет для клиента {client_name} в чате {chat_title}")
 
     except Exception as e:
-        logger.error(f"❌ Ошибка сохранения сообщения группы в SQLite: {e}", exc_info=True)
+        logger.error(f"❌ Ошибка в групповом обработчике: {e}", exc_info=True)
+
+
+# =====================================================================
+# 3. РЕАКЦИИ: Закрытие по эмодзи (Группы + ЛС Премиум)
+# =====================================================================
+
+@router.message_reaction()
+async def handle_message_reaction(reaction_update: MessageReactionUpdated):
+    """Отслеживает добавление реакций для закрытия чатов (Полный Дебаг)"""
+    try:
+        if not reaction_update.user:
+            return
+            
+        user_id = str(reaction_update.user.id)
+        is_engineer = await db.engineer.find_unique(where={"telegramId": user_id})
+        if not is_engineer:
+            return
+
+        ALLOWED_EMOJIS = ["✅", "👌", "👍"]
+        current_emoji = None
+        for reaction in reaction_update.new_reaction:
+            if reaction.type == "emoji" and reaction.emoji in ALLOWED_EMOJIS:
+                current_emoji = reaction.emoji
+                break
+
+        if not current_emoji:
+            return
+
+        chat_id = str(reaction_update.chat.id)
+        chat_type = reaction_update.chat.type
+        message_id = reaction_update.message_id
+
+
+        print(f"\n===== 🔍 ДЕБАГ РЕАКЦИИ =====")
+        print(f"Кто поставил: {is_engineer.name} ({user_id})")
+        print(f"Эмодзи: {current_emoji}")
+        print(f"ID чата, откуда пришло: {chat_id}")
+        print(f"Тип чата в Telegram: {chat_type}")
+        print(f"===========================\n")
+
+        # Ищем открытый тикет строго по chatId, который прилетел в событии
+        active_chat = await db.activechat.find_first(
+            where={
+                "chatId": chat_id,
+                "status": "opened"
+            }
+        )
+
+        # Если не нашли по chatId (например, для ЛС это уникальный составной ключ)
+        if not active_chat and chat_type == "private":
+            active_chat = await db.activechat.find_unique(
+                where={
+                    "chatId_userId": {
+                        "chatId": chat_id,
+                        "userId": chat_id
+                    }
+                }
+            )
+            if active_chat and active_chat.status != "opened":
+                active_chat = None
+
+        if not active_chat:
+            print(f"ℹ️ Итог: В базе данных нет открытого тикета с chatId = '{chat_id}'")
+            return
+
+        # Обновляем
+        await db.activechat.update(
+            where={
+                "chatId_userId": {
+                    "chatId": active_chat.chatId,
+                    "userId": active_chat.userId
+                }
+            },
+            data={
+                "status": "answered",
+                "engineerId": is_engineer.id,
+                "isAlerted": False,
+                "lastMessage": f"Закрыто реакцией {current_emoji}",
+                "updatedAt": datetime.now(timezone.utc)
+            }
+        )
+        print(f"🎉 Успешно закрыли тикет: {active_chat.clientName} [{active_chat.chatTitle}]")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка в обработчике реакций: {e}", exc_info=True)
+
+@router.inline_query()
+async def inline_close_handler(inline_query: InlineQuery):
+    user_id = str(inline_query.from_user.id)
+    
+    engineer = await db.engineer.find_unique(where={"telegramId": user_id})
+    if not engineer:
+        await inline_query.answer(
+            results=[],
+            switch_pm_text="❌ Только для инженеров",
+            switch_pm_parameter="auth",
+            cache_time=1
+        )
+        return
+
+    opened_tickets = await db.activechat.find_many(
+        where={"status": "opened"},
+        order={"updatedAt": "asc"},
+        take=10
+    )
+
+    if not opened_tickets:
+        await inline_query.answer(
+            results=[],
+            switch_pm_text="🎉 Нет открытых тикетов",
+            switch_pm_parameter="empty",
+            cache_time=1
+        )
+        return
+
+    results = []
+    for t in opened_tickets:
+        result_id = f"close|{t.chatId}|{t.userId}"
+        
+        # Обрезаем длинные строки
+        client = t.clientName[:25] if t.clientName else "Неизвестно"
+        last_msg = t.lastMessage[:40] if t.lastMessage else "—"
+        chat_title = t.chatTitle[:20] if t.chatTitle else "ЛС"
+        
+        is_mine = t.engineerId == engineer.id
+        prefix = "✅" if is_mine else "⚡"
+
+        results.append(
+            InlineQueryResultArticle(
+                id=result_id,
+                title=f"{prefix} {client}",
+                description=f"💬 {last_msg} | 📍 {chat_title}",
+                input_message_content=InputTextMessageContent(
+                    message_text="Какой-то крутой текст, мб оцените качество выполнения задачи",
+                    parse_mode="HTML"
+                )
+            )
+        )
+
+    await inline_query.answer(results=results, cache_time=1, is_personal=True)
+
+
+@router.chosen_inline_result()
+async def chosen_close_handler(chosen_result: ChosenInlineResult):
+    """Закрывает тикет после выбора в inline query"""
+    result_id = chosen_result.result_id
+    
+    if not result_id.startswith("close|"):
+        return
+
+    _, chat_id, user_id = result_id.split("|")
+    engineer_id = str(chosen_result.from_user.id)
+
+    engineer = await db.engineer.find_unique(where={"telegramId": engineer_id})
+    if not engineer:
+        return
+
+    try:
+        await db.activechat.update(
+            where={"chatId_userId": {"chatId": chat_id, "userId": user_id}},
+            data={
+                "status": "answered",
+                "engineerId": engineer.id,
+                "isAlerted": False,
+                "lastMessage": f"Закрыто через inline ({engineer.name})",
+                "updatedAt": datetime.now(timezone.utc)
+            }
+        )
+        print(f"🎉 Inline закрытие: {chat_id} by {engineer.name}")
+    except Exception as e:
+        logger.error(f"❌ Ошибка inline закрытия: {e}", exc_info=True)

@@ -31,38 +31,60 @@ async def check_forgotten_chats_loop():
             )
 
             # 3. Обрабатываем каждый забытый чат
+            # ... код выборки forgotten_chats ...
+
             for chat in forgotten_chats:
-                engineer_mention = chat.engineer.username if chat.engineer else "Не назначен"
-                
-                # Текст жесткого уведомления в рабочий чат
-                alert_text = (
-                    f"🚨 <b>ПРОЁБАНО ОБРАЩЕНИЕ!</b>\n\n"
-                    f"👤 <b>Инженер:</b> {engineer_mention}\n"
-                    f"🏢 <b>Клиент:</b> {chat.clientName}\n"
-                    f"⏱ <b>Статус:</b> Без ответа более {config.waitTimeoutMin} мин.\n\n"
-                    f"💬 <b>Последнее сообщение:</b>\n"
-                    f"<i>\"{chat.lastMessage}\"</i>"
-                )
+                try:
+                    # 1. Безопасно определяем, кого тегать
+                    engineer_mention = "Не назначен"
+                    if chat.engineerId and chat.engineer:
+                        engineer_mention = f"{chat.engineer.username}" if chat.engineer.username else chat.engineer.name
+                    elif chat.engineerId:
+                        # На случай, если id есть, но связь не подгрузилась через include
+                        eng = await db.engineer.find_unique(where={"id": chat.engineerId})
+                        if eng:
+                            engineer_mention = f"{eng.username}" if eng.username else eng.name
 
-                # Кнопка перехода к сообщению
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🏃‍♂️ Перейти к сообщению", url=chat.externalChatUrl)]
-                ])
+                    # 2. Формируем текст сообщения
+                    alert_text = (
+                        f"🚨 <b>ПРОЁБАНО ОБРАЩЕНИЕ!</b>\n\n"
+                        f"👤 <b>Клиент:</b> {chat.clientName}\n"
+                        f"👥 <b>Чат:</b> {chat.chatTitle}\n"
+                        f"👤 <b>Инженер:</b> {engineer_mention}\n"
+                        f"📝 <b>Последнее сообщение:</b>\n<i>\"{chat.lastMessage}\"</i>"
+                    )
 
-                # Отправляем алерт в чат, заданный админом
-                await bot.send_message(
-                    chat_id=config.alertChatId,
-                    text=alert_text,
-                    reply_markup=keyboard
-                )
+                    # 3. Создаем инлайн-кнопку
+                    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🏃‍♂️ Перейти к сообщению", url=chat.externalChatUrl)]
+                    ])
 
-                # Помечаем чат в БД как обработанный алертом, чтобы не спамить каждую минуту
-                await db.activechat.update(
-                    where={"id": chat.id},
-                    data={"isAlerted": True}
-                )
-                
-                logger.warning(f"Отправлен алерт по чату {chat.id} для инженера {engineer_mention}")
+                    # 4. Отправляем в рабочий чат алертов
+                    await bot.send_message(
+                        chat_id=config.alertChatId,
+                        text=alert_text,
+                        reply_markup=keyboard,
+                        parse_mode="HTML"
+                    )
+
+                    # 5. И ТОЛЬКО ПОСЛЕ УСПЕШНОЙ ОТПРАВКИ обновляем флаг конкретно для этого юзера
+                    await db.activechat.update(
+                        where={
+                            "chatId_userId": {
+                                "chatId": chat.chatId,
+                                "userId": chat.userId
+                            }
+                        },
+                        data={"isAlerted": True}
+                    )
+                    print(f"🔔 Алерт по клиенту {chat.clientName} успешно отправлен и зафиксирован.")
+
+                except Exception as e:
+                    # Если один чат упал (например, ссылка кривая или данные null), 
+                    # логгируем ошибку и переходим к СЛЕДУЮЩЕМУ чату в цикле
+                    logger.error(f"❌ Ошибка при обработке алерта для chatId={chat.chatId}, userId={chat.userId}: {e}", exc_info=True)
+                    continue
 
         except Exception as e:
             logger.error(f"Ошибка в фоновом таске проверки чатов: {e}", exc_info=True)
