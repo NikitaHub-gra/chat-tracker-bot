@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Настройки — Реста Hub</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117; color: #e2e8f0; min-height: 100vh;
+  }
+  header {
+    background: #1a1d2e; border-bottom: none;
+    padding: 0 32px; height: 56px;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-sep { width: 1px; height: 20px; background: #2d3148; }
+  .header-title { font-size: 15px; font-weight: 700; letter-spacing: 0.01em; }
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #64748b; text-decoration: none;
+    padding: 5px 10px; border-radius: 6px;
+    border: none; transition: color 0.2s, border-color 0.2s;
+  }
+  .back-btn:hover { color: #e2e8f0; border-color: #475569; }
+
+  main { max-width: 760px; margin: 0 auto; padding: 32px 24px 60px; }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  h2 { font-size: 15px; margin-bottom: 4px; }
+  .desc { font-size: 13px; color: #64748b; margin-bottom: 24px; line-height: 1.6; }
+  .desc a { color: #2979FF; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid #1e2235; }
+  .tab-btn {
+    background: none; border: none; color: #64748b; font-family: inherit;
+    font-size: 13px; font-weight: 600; padding: 10px 16px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: #cbd5e1; }
+  .tab-btn.active { color: #E8935A; border-bottom-color: #E8935A; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .add-row {
+    display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;
+  }
+  input:not([type="checkbox"]), select {
+    background: #1a1d2e; border: none; color: #e2e8f0;
+    border-radius: 8px; padding: 9px 12px; font-size: 13px; font-family: inherit; outline: none;
+  }
+  input:not([type="checkbox"]) { flex: 1; min-width: 130px; font-family: inherit; }
+  input#new-id { font-family: monospace; }
+  button {
+    background: #E8935A; border: none; color: #1a1208;
+    border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  button.danger { background: #2a1418; color: #FF5252; font-weight: 600; padding: 6px 12px; font-size: 12px; }
+  button.secondary { background: #1e2235; color: #94a3b8; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; background: #1a1d2e; border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; font-size: 13px; }
+  th { background: #161a2c; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:not(:last-child) td { border-bottom: 1px solid #1e2235; }
+  .role-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px;
+    border-radius: 12px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .role-admin { background: rgba(232,147,90,0.15); color: #E8935A; }
+  .role-service_admin { background: rgba(124,77,255,0.15); color: #9C7BFF; }
+  .role-engineer, .role-employee { background: rgba(100,116,139,0.15); color: #94a3b8; }
+  .perm-list { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+  .perm-list label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: #cbd5e1; font-weight: 400; }
+  .perm-list input[type="checkbox"] { accent-color: #E8935A; width: 14px; height: 14px; cursor: pointer; }
+  .perm-list.disabled label { color: #475569; cursor: default; }
+  .status { font-size: 12px; margin-left: 10px; }
+  .status.err { color: #FF5252; }
+  .status.ok  { color: #19E68C; }
+  .muted { color: #475569; font-size: 12px; }
+
+  /* ── Cards (other tabs) ── */
+  .card {
+    background: #1a1d2e; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+  }
+  .card .desc { margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+  .field input { width: 100%; }
+  .link-btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: #E8935A; color: #1a1208; border-radius: 8px; padding: 9px 18px;
+    font-size: 13px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <a href="hub.html" class="back-btn">← Портал</a>
+    <div class="header-sep"></div>
+    <img src="Реста_хорека_цветной_логотип_вертикальный.png"
+         alt="Реста" height="36"
+         style="border-radius:5px;background:#fff;padding:3px 7px;object-fit:contain;" />
+    <div class="header-sep"></div>
+    <div class="header-title">Настройки</div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn active" data-tab="access" onclick="switchTab('access')">Доступ и права</button>
+    <button class="tab-btn" data-tab="bot" onclick="switchTab('bot')">Мессенджеры</button>
+    <button class="tab-btn" data-tab="hub" onclick="switchTab('hub')">Общие настройки</button>
+  </div>
+
+  <!-- ── Tab: Доступ и права ── -->
+  <div class="tab-panel active" id="tab-access">
+    <h1>Сотрудники с доступом к хабу</h1>
+    <div class="desc">
+      Добавьте Telegram ID сотрудника, чтобы он мог войти в хаб. Узнать ID — попросить написать
+      <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>.
+      Сотрудник должен сначала написать <b>/start</b> рабочему боту поддержки, иначе код входа не дойдёт.
+    </div>
+
+    <div class="add-row">
+      <input id="new-id" type="text" inputmode="numeric" placeholder="Telegram ID..." style="min-width:120px;max-width:150px;" onkeydown="if(event.key==='Enter')addUser()" />
+      <input id="new-name" type="text" placeholder="Имя (необязательно)" style="min-width:150px;" onkeydown="if(event.key==='Enter')addUser()" />
+      <select id="new-role">
+        <option value="engineer">Инженер</option>
+        <option value="service_admin">Сервис-админ</option>
+        <option value="admin">Админ хаба</option>
+      </select>
+      <button onclick="addUser()">+ Добавить</button>
+      <span id="add-status" class="status"></span>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Пользователь</th><th>Telegram ID</th><th>Роль</th><th>Доступ к разделам</th><th>Последний вход</th><th></th></tr>
+      </thead>
+      <tbody id="users-body">
+        <tr><td colspan="6" class="muted">Загрузка...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Tab: Telegram-бот ── -->
+  <div class="tab-panel" id="tab-bot">
+    <h1>Настройки Telegram / MAX бота</h1>
+    <div class="desc">
+      Токен бота, подключение вебхуков, аккаунт команды, список сотрудников и ключевые слова для
+      распределения сообщений.
+    </div>
+
+    <div class="tabs" style="margin-bottom:16px;">
+      <button class="tab-btn active" data-subtab="telegram" onclick="switchBotTab('telegram')">✈️ Telegram</button>
+      <button class="tab-btn" data-subtab="max" onclick="switchBotTab('max')">▪ MAX</button>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;" id="bot-frame-telegram">
+      <iframe class="bot-settings-frame" src="/telegram.html?settings=1&embed=1&channel=telegram"
+              style="display:block;width:100%;border:none;background:transparent;min-height:400px;"
+              onload="resizeBotFrame(this)"></iframe>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;display:none;" id="bot-frame-max">
+      <iframe class="bot-settings-frame" src="/telegram.html?settings=1&embed=1&channel=max"
+              style="display:block;width:100%;border:none;background:transparent;min-height:400px;"
+              onload="resizeBotFrame(this)"></iframe>
+    </div>
+  </div>
+
+  <!-- ── Tab: Общие настройки ── -->
+  <div class="tab-panel" id="tab-hub">
+    <h1>Общие настройки хаба</h1>
+    <div class="desc">Эти параметры доступны всем дашбордам хаба.</div>
+    <div class="card">
+      <div class="field">
+        <label>Название компании</label>
+        <input id="hub-company-name" type="text" placeholder="Реста" />
+      </div>
+      <div class="field">
+        <label>Контакт поддержки (для отображения сотрудникам)</label>
+        <input id="hub-support-contact" type="text" placeholder="@username или email" />
+      </div>
+      <button onclick="saveHubSettings()">Сохранить</button>
+      <span id="hub-status" class="status"></span>
+    </div>
+  </div>
+</main>
+
+<script src="/auth-widget.js"></script>
+<script>
+  let users = [];
+  let myId = null;
+  let myRole = null;
+  let modules = ['telegram', 'max', 'planfix', 'megapbx', 'settings'];
+  const MODULE_LABELS = {
+    telegram: 'Telegram',
+    max: 'MAX',
+    planfix: 'PlanFix',
+    megapbx: 'MegaPBX / Звонки',
+    settings: '⚙ Настройки',
+  };
+
+  // The bot-settings iframe loads telegram.html in embed mode and shows
+  // the settings panel inline. Its content loads asynchronously, so keep
+  // resizing the iframe to fit until it stabilizes.
+  function resizeBotFrame(frame) {
+    const apply = () => {
+      try {
+        const doc = frame.contentDocument;
+        const h = doc.body.scrollHeight;
+        if (h > 0) frame.style.height = h + 'px';
+      } catch {}
+    };
+    apply();
+    let n = 0;
+    const interval = setInterval(() => {
+      apply();
+      if (++n > 20) clearInterval(interval);
+    }, 250);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('#main-tabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
+    if (tab === 'hub') loadHubSettings();
+  }
+
+  function switchBotTab(sub) {
+    document.querySelectorAll('#tab-bot .tabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === sub));
+    document.getElementById('bot-frame-telegram').style.display = sub === 'telegram' ? '' : 'none';
+    document.getElementById('bot-frame-max').style.display = sub === 'max' ? '' : 'none';
+  }
+
+  async function loadUsers() {
+    const me = await fetch('/api/dashboard/auth/me').then(r => r.json());
+    if (!me.user) { location.href = '/login.html'; return; }
+    myId = me.user?.id;
+    myRole = me.user?.role;
+
+    // Only admins can access this page
+    if (myRole !== 'admin' && myRole !== 'service_admin') {
+      document.getElementById('users-body').innerHTML =
+        `<tr><td colspan="6" class="muted">Доступ только для администраторов</td></tr>`;
+      document.querySelector('.add-row')?.remove();
+      return;
+    }
+
+    const r = await fetch('/api/dashboard/auth/users').then(r => r.json());
+    if (!r.success) {
+      document.getElementById('users-body').innerHTML =
+        `<tr><td colspan="6" class="muted">Доступ только для администраторов</td></tr>`;
+      return;
+    }
+    users = r.users;
+    if (r.modules) modules = r.modules;
+    render();
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    return new Date(ts * 1000).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const SUPER_ADMIN_TG_ID = 623121882;
+  const ROLE_LABELS = {
+    admin: '<span class="role-badge role-admin">Admin</span>',
+    service_admin: '<span class="role-badge role-service_admin">Сервис-админ</span>',
+    engineer: '<span class="role-badge role-engineer">Инженер</span>',
+  };
+
+  function render() {
+    const body = document.getElementById('users-body');
+    if (!users.length) {
+      body.innerHTML = `<tr><td colspan="6" class="muted">Список пуст</td></tr>`;
+      return;
+    }
+    body.innerHTML = users.map(u => {
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || (u.username ? '@' + u.username : '—');
+      const isAdmin = u.role === 'admin' || u.role === 'service_admin';
+      const isSuperAdmin = u.telegramId === SUPER_ADMIN_TG_ID;
+      const perms = u.permissions || [];
+      const locked = isAdmin || isSuperAdmin;
+
+      const permList = `
+        <div class="perm-list ${locked ? 'disabled' : ''}">
+          ${modules.map(m => `
+            <label>
+              <input type="checkbox" ${perms.includes(m) ? 'checked' : ''} ${locked ? 'disabled' : ''}
+                     onchange="changePermissions(${u.id})" data-user="${u.id}" data-module="${m}">
+              ${MODULE_LABELS[m] || m}
+            </label>`).join('')}
+        </div>`;
+
+      const roleCell = isSuperAdmin
+        ? `<span class="role-badge role-admin">👑 Суперадмин</span>`
+        : `<select onchange="changeRole(${u.id}, this.value)" style="padding:4px 8px;font-size:12px;"
+                   ${u.id === myId ? 'disabled' : ''}>
+             <option value="engineer" ${(u.role==='engineer'||u.role==='employee')?'selected':''}>Инженер</option>
+             <option value="service_admin" ${u.role==='service_admin'?'selected':''}>Сервис-админ</option>
+             <option value="admin" ${u.role==='admin'?'selected':''}>Админ хаба</option>
+           </select>`;
+
+      const canDelete = !isSuperAdmin && u.id !== myId;
+      return `
+        <tr>
+          <td>${esc(name)}</td>
+          <td style="font-family:monospace;color:#94a3b8;">${u.telegramId}</td>
+          <td>${roleCell}</td>
+          <td>${locked ? '<span class="muted">Полный доступ</span>' : permList}</td>
+          <td class="muted">${fmtDate(u.lastLoginAt)}</td>
+          <td>${canDelete ? `<button class="danger" onclick="removeUser(${u.id})">Удалить</button>` : ''}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function changePermissions(userId) {
+    const checkboxes = document.querySelectorAll(`input[data-user="${userId}"]`);
+    const permissions = Array.from(checkboxes).filter(c => c.checked).map(c => c.dataset.module);
+    await fetch(`/api/dashboard/auth/users/${userId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ permissions }),
+    });
+    const u = users.find(u => u.id === userId);
+    if (u) u.permissions = permissions;
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function addUser() {
+    const inp = document.getElementById('new-id');
+    const nameInp = document.getElementById('new-name');
+    const role = document.getElementById('new-role').value;
+    const status = document.getElementById('add-status');
+    const id = inp.value.trim();
+    const name = nameInp?.value.trim() || '';
+    if (!id || isNaN(id)) { status.textContent = 'Неверный ID'; status.className = 'status err'; return; }
+    try {
+      const r = await fetch('/api/dashboard/auth/users', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: id, role, firstName: name || undefined }),
+      }).then(r => r.json());
+      if (!r.success) throw new Error(r.error || 'Ошибка');
+      inp.value = '';
+      if (nameInp) nameInp.value = '';
+      status.textContent = '✓ Добавлено'; status.className = 'status ok';
+      setTimeout(() => status.textContent = '', 1500);
+      loadUsers();
+    } catch (e) {
+      status.textContent = '✗ ' + e.message; status.className = 'status err';
+    }
+  }
+
+  async function changeRole(id, role) {
+    await fetch(`/api/dashboard/auth/users/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    loadUsers();
+  }
+
+  async function removeUser(id) {
+    if (!confirm('Убрать доступ этому пользователю?')) return;
+    await fetch(`/api/dashboard/auth/users/${id}`, { method: 'DELETE' });
+    loadUsers();
+  }
+
+  // ── Hub settings ──
+  let hubSettingsLoaded = false;
+  async function loadHubSettings() {
+    if (hubSettingsLoaded) return;
+    try {
+      const r = await fetch('/api/dashboard/auth/hub-settings').then(r => r.json());
+      if (r.success) {
+        document.getElementById('hub-company-name').value = r.settings.companyName || '';
+        document.getElementById('hub-support-contact').value = r.settings.supportContact || '';
+      }
+      hubSettingsLoaded = true;
+    } catch {}
+  }
+
+  async function saveHubSettings() {
+    const status = document.getElementById('hub-status');
+    try {
+      const r = await fetch('/api/dashboard/auth/hub-settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: document.getElementById('hub-company-name').value,
+          supportContact: document.getElementById('hub-support-contact').value,
+        }),
+      }).then(r => r.json());
+      if (!r.success) throw new Error(r.error || 'Ошибка');
+      status.textContent = '✓ Сохранено'; status.className = 'status ok';
+      setTimeout(() => status.textContent = '', 1500);
+    } catch (e) {
+      status.textContent = '✗ ' + e.message; status.className = 'status err';
+    }
+  }
+
+  loadUsers();
+</script>
+</body>
+</html>

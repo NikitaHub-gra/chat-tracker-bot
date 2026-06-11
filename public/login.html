@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>Вход — Реста Hub</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117; color: #e2e8f0;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #1a1d2e; border-radius: 16px; padding: 36px 32px;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .logo { font-size: 22px; font-weight: 800; letter-spacing: 0.04em; color: #fff; margin-bottom: 4px; }
+  .logo span { color: #E8935A; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+  input {
+    width: 100%; background: #0f1117; border: none; color: #e2e8f0;
+    border-radius: 8px; padding: 11px 14px; font-size: 14px; font-family: inherit;
+    outline: none; margin-bottom: 6px;
+  }
+  input::placeholder { color: #475569; }
+  .hint { font-size: 11px; color: #475569; margin-bottom: 18px; line-height: 1.5; }
+  .hint a { color: #2979FF; }
+  button {
+    width: 100%; background: #E8935A; border: none; color: #1a1208;
+    border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.15s; font-family: inherit;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.secondary {
+    background: none; color: #64748b; margin-top: 10px; font-weight: 500; font-size: 12px;
+  }
+  .status { font-size: 12px; margin-top: 14px; min-height: 16px; line-height: 1.5; }
+  .status.err { color: #FF5252; }
+  .status.ok  { color: #19E68C; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .code-input {
+    text-align: center; font-size: 22px; letter-spacing: 0.4em; font-weight: 700;
+    font-family: monospace; padding-left: 22px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <img src="Реста_хорека_цветной_логотип_вертикальный.png"
+       alt="Реста" height="48"
+       style="display:block;margin:0 auto 14px;border-radius:6px;background:#fff;padding:5px 10px;object-fit:contain;" />
+  <div class="logo">Реста <span>Hub</span></div>
+  <div class="subtitle">Вход через Telegram</div>
+
+  <!-- Step 1: enter Telegram ID -->
+  <div class="step active" id="step-id">
+    <label>Ваш Telegram ID</label>
+    <input id="telegram-id" type="text" inputmode="numeric" placeholder="123456789"
+           onkeydown="if(event.key==='Enter')requestCode()" />
+    <div class="hint">
+      Узнать свой ID — написать <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>.<br>
+      Перед входом обязательно напишите <b>/start</b> рабочему боту поддержки — иначе код не дойдёт.
+    </div>
+    <button id="btn-request" onclick="requestCode()">Получить код</button>
+    <div class="status" id="status-id"></div>
+  </div>
+
+  <!-- Step 2: enter code -->
+  <div class="step" id="step-code">
+    <label>Код из Telegram</label>
+    <input id="code" class="code-input" type="text" inputmode="numeric" maxlength="6" placeholder="••••••"
+           onkeydown="if(event.key==='Enter')verifyCode()" />
+    <div class="hint">Код отправлен в личные сообщения от бота. Действует 5 минут.</div>
+    <button id="btn-verify" onclick="verifyCode()">Войти</button>
+    <button class="secondary" onclick="backToId()">← Изменить ID</button>
+    <div class="status" id="status-code"></div>
+  </div>
+</div>
+
+<script>
+  let currentTelegramId = null;
+
+  // Restore last used ID for convenience
+  const savedId = localStorage.getItem('hub_telegram_id');
+  if (savedId) document.getElementById('telegram-id').value = savedId;
+
+  async function requestCode() {
+    const idInput = document.getElementById('telegram-id');
+    const id = idInput.value.trim();
+    const status = document.getElementById('status-id');
+    const btn = document.getElementById('btn-request');
+    if (!id || isNaN(id)) { status.textContent = 'Введите корректный Telegram ID (только цифры)'; status.className = 'status err'; return; }
+
+    btn.disabled = true; btn.textContent = 'Отправка...';
+    status.textContent = ''; status.className = 'status';
+    try {
+      const r = await fetch('/api/dashboard/auth/request-code', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: id }),
+      }).then(r => r.json());
+      if (!r.success) throw new Error(r.error || 'Не удалось отправить код');
+      currentTelegramId = id;
+      localStorage.setItem('hub_telegram_id', id);
+      document.getElementById('step-id').classList.remove('active');
+      document.getElementById('step-code').classList.add('active');
+      document.getElementById('code').focus();
+    } catch (e) {
+      status.textContent = '✗ ' + e.message;
+      status.className = 'status err';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Получить код';
+    }
+  }
+
+  async function verifyCode() {
+    const code = document.getElementById('code').value.trim();
+    const status = document.getElementById('status-code');
+    const btn = document.getElementById('btn-verify');
+    if (!code) { status.textContent = 'Введите код'; status.className = 'status err'; return; }
+
+    btn.disabled = true; btn.textContent = 'Проверка...';
+    status.textContent = ''; status.className = 'status';
+    try {
+      const r = await fetch('/api/dashboard/auth/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: currentTelegramId, code }),
+      }).then(r => r.json());
+      if (!r.success) throw new Error(r.error || 'Ошибка входа');
+      status.textContent = '✓ Успешно! Перенаправляем...';
+      status.className = 'status ok';
+      setTimeout(() => location.href = '/hub.html', 500);
+    } catch (e) {
+      status.textContent = '✗ ' + e.message;
+      status.className = 'status err';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Войти';
+    }
+  }
+
+  function backToId() {
+    document.getElementById('step-code').classList.remove('active');
+    document.getElementById('step-id').classList.add('active');
+    document.getElementById('status-code').textContent = '';
+  }
+</script>
+</body>
+</html>

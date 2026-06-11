@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Реста — Внутренний портал</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3148;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #fff;
+    }
+    .logo span { color: #E8935A; }
+
+    .logo-sep {
+      width: 1px;
+      height: 24px;
+      background: #2d3148;
+    }
+
+    .portal-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 60px 40px 40px;
+      text-align: center;
+    }
+
+    .hero-title {
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    .hero-title span { color: #E8935A; }
+
+    .hero-sub {
+      font-size: 15px;
+      color: #64748b;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── Cards grid ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 20px 40px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .card {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 16px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card.active {
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+    }
+    .card.active:hover {
+      border-color: #E8935A;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(232, 147, 90, 0.15), 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .card.active::after {
+      content: '→';
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      font-size: 18px;
+      color: #E8935A;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .card.active:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .card.soon {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* Subtle glow behind icon */
+    .card-glow {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.12;
+      pointer-events: none;
+    }
+
+    .card-icon {
+      font-size: 36px;
+      line-height: 1;
+    }
+
+    .card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 20px;
+      width: fit-content;
+    }
+    .badge-live {
+      background: rgba(0, 208, 107, 0.15);
+      color: #00D06B;
+      border: 1px solid rgba(0, 208, 107, 0.3);
+    }
+    .badge-soon {
+      background: rgba(100, 116, 139, 0.15);
+      color: #64748b;
+      border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .badge-live .badge-dot {
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .card-tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #0f1117;
+      color: #475569;
+      border: 1px solid #2d3148;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      background: #1a1d2e;
+      border-top: 1px solid #2d3148;
+      padding: 14px 40px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #4a5568;
+    }
+    .footer-brand { font-weight: 700; color: #64748b; }
+    .footer-accent { color: #E8935A; }
+    .footer-sep { color: #2d3148; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <img src="Реста_хорека_цветной_логотип_вертикальный.png"
+         alt="Реста" height="44"
+         style="border-radius:6px;background:#fff;padding:4px 8px;object-fit:contain;" />
+    <div class="logo-sep"></div>
+    <div class="portal-label">Внутренний портал</div>
+  </div>
+</header>
+
+<section class="hero">
+  <h1 class="hero-title">Добро пожаловать в <span>портал</span></h1>
+  <p class="hero-sub">Единая точка входа для инструментов и аналитики компании. Выберите раздел ниже.</p>
+</section>
+
+<main class="cards">
+
+  <!-- Сервисная поддержка — активен -->
+  <a href="index.html" class="card active">
+    <div class="card-glow" style="background:#E8935A;"></div>
+    <div class="card-icon">🛠️</div>
+    <div class="card-badge badge-live"><span class="badge-dot"></span>Работает</div>
+    <div class="card-title">Сервисная поддержка</div>
+    <div class="card-desc">Дашборд качества обслуживания: открытые задачи, SLA, дежурства, нагрузка по сотрудникам и топ клиентов.</div>
+  </a>
+
+  <!-- Панель администратора сервиса — активен -->
+  <a href="telegram.html" class="card active">
+    <div class="card-glow" style="background:#2979FF;"></div>
+    <div class="card-icon">💬</div>
+    <div class="card-badge badge-live"><span class="badge-dot"></span>Работает</div>
+    <div class="card-title">Панель администратора сервиса</div>
+    <div class="card-desc">Мониторинг обращений в Telegram: очередь без ответа, время реакции, KPI команды и уведомления.</div>
+  </a>
+
+  <!-- Настройки — только для администраторов -->
+  <a href="admin.html" class="card active" id="settings-card" style="display:none;">
+    <div class="card-glow" style="background:#5C9BFF;"></div>
+    <div class="card-icon">⚙️</div>
+    <div class="card-badge badge-live"><span class="badge-dot"></span>Работает</div>
+    <div class="card-title">Настройки</div>
+    <div class="card-desc">Доступ сотрудников и роли, настройки Telegram-бота, общие параметры хаба.</div>
+  </a>
+
+  <!-- Проектный отдел — скоро -->
+  <div class="card soon">
+    <div class="card-glow" style="background:#3949AB;"></div>
+    <div class="card-icon">📊</div>
+    <div class="card-badge badge-soon"><span class="badge-dot"></span>Скоро</div>
+    <div class="card-title">Проектный отдел</div>
+    <div class="card-desc">Аналитика по проектам: сроки, бюджеты, статусы задач и ключевые метрики команды.</div>
+  </div>
+
+  <!-- HR — скоро -->
+  <div class="card soon">
+    <div class="card-glow" style="background:#00897B;"></div>
+    <div class="card-icon">👥</div>
+    <div class="card-badge badge-soon"><span class="badge-dot"></span>Скоро</div>
+    <div class="card-title">HR / Сотрудники</div>
+    <div class="card-desc">Структура компании, отпуска, KPI сотрудников и данные по подбору персонала.</div>
+  </div>
+
+  <!-- Финансы — скоро -->
+  <div class="card soon">
+    <div class="card-glow" style="background:#FFB300;"></div>
+    <div class="card-icon">💰</div>
+    <div class="card-badge badge-soon"><span class="badge-dot"></span>Скоро</div>
+    <div class="card-title">Финансы / Операции</div>
+    <div class="card-desc">Бюджет, расходы, P&L и операционные показатели по подразделениям.</div>
+  </div>
+
+</main>
+
+<footer>
+  <span class="footer-brand">Реста</span>
+  <span class="footer-sep">·</span>
+  <span>Внутренний портал</span>
+  <span class="footer-sep">·</span>
+  <span id="footer-date"></span>
+  <script>
+    const d = new Date();
+    document.getElementById('footer-date').textContent =
+      d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    fetch('/api/dashboard/auth/me').then(r => r.json()).then(r => {
+      if (r.user?.role === 'admin') {
+        document.getElementById('settings-card').style.display = '';
+      }
+    }).catch(() => {});
+  </script>
+</footer>
+<script src="/auth-widget.js"></script>
+
+</body>
+</html>

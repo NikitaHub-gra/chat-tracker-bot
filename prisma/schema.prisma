@@ -53,3 +53,258 @@ model IgnoredUser {
   username   String?  // Юзернейм для удобства отображения в списке
   createdAt  DateTime @default(now())
 }
+
+model AlertUser {
+  id         Int      @id @default(autoincrement())
+  telegramId String   @unique
+  username   String?
+  name       String?
+  createdAt  DateTime @default(now())
+}
+
+// ── Merged bot settings (replaces SystemConfig + JSON files) ──
+
+model BotSettings {
+  id               Int      @id @default(autoincrement())
+  // Telegram
+  tgBotToken       String   @default("")
+  tgOwnerId        Int?
+  tgTeamIds        String   @default("[]")
+  // MAX
+  maxBotToken      String   @default("")
+  maxTeamIds       String   @default("[]")
+  // Shared
+  waitTimeoutMin   Int      @default(15)
+  missedThreshold  Int      @default(900)
+  pendingTimeout   Int      @default(1800)
+  alertChatId      String   @default("")
+  // Phrase lists (JSON arrays as strings)
+  noReplyPhrases   String   @default("[]")
+  pendingPhrases   String   @default("[]")
+  positiveKeywords String   @default("[]")
+  negativeKeywords String   @default("[]")
+  updatedAt        DateTime @updatedAt
+}
+
+model Conversation {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  chatId           String
+  source           String                         // "private" | "group"
+  clientName       String    @default("")
+  clientUsername   String?
+  lastClientMsgAt  Int?
+  lastClientMsgText String?
+  lastAgentMsgAt   Int?
+  lastAgentName    String?
+  status           String    @default("waiting")
+  isPending        Boolean   @default(false)
+  pendingAt        Int?
+  isNegative       Boolean   @default(false)
+  isPositive       Boolean   @default(false)
+  hasControl       Boolean   @default(false)
+  hasViolation     Boolean   @default(false)
+  msgCount         Int       @default(0)
+  createdAt        Int
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([messenger, chatId])
+}
+
+model ChatMessage {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  msgId            String?
+  chatId           String
+  direction        String                         // "in" | "out"
+  text             String    @default("")
+  agentName        String?
+  sentAt           Int
+  hasPhoto         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+
+  @@index([chatId, messenger])
+  @@index([sentAt])
+}
+
+model GroupMessage {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  groupId          String
+  msgId            String?
+  fromId           Int
+  fromName         String    @default("")
+  text             String    @default("")
+  sentAt           Int
+  answered         Boolean   @default(false)
+  answeredAt       Int?
+  isTeam           Boolean   @default(false)
+  isPendingReply   Boolean   @default(false)
+  hidden           Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+
+  @@index([groupId, messenger])
+  @@index([sentAt])
+}
+
+model MissedEvent {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  chatId           String
+  clientName       String    @default("")
+  clientUsername   String?
+  lastMsg          String    @default("")
+  waitedSeconds    Int
+  missedAt         Int
+  source           String    @default("timeout")
+  hidden           Boolean   @default(false)
+
+  @@index([missedAt])
+}
+
+model ResolvedTask {
+  id               Int       @id @default(autoincrement())
+  messenger        String    @default("telegram")
+  chatId           String
+  clientName       String    @default("")
+  taskType         String    @default("")
+  description      String    @default("")
+  objectId         String?
+  planfixTaskId    String?
+  planfixTaskUrl   String?
+  timeSpentSec     Int       @default(0)
+  resolvedAt       Int
+  isNegative       Boolean   @default(false)
+}
+
+model Control {
+  id               String    @id
+  messenger        String    @default("telegram")
+  chatId           String
+  clientName       String    @default("")
+  action           String
+  responsible      String    @default("")
+  deadline         String?
+  messageText      String    @default("")
+  done             Boolean   @default(false)
+  doneAt           Int?
+  createdAt        Int
+}
+
+model Violation {
+  id               String    @id
+  messenger        String    @default("telegram")
+  chatId           String
+  clientName       String    @default("")
+  employeeName     String
+  comment          String    @default("")
+  messageText      String    @default("")
+  recordedAt       Int
+}
+
+model GroupInfo {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  groupId          String
+  title            String    @default("")
+  createdAt        Int
+
+  @@unique([messenger, groupId])
+}
+
+model DailyStats {
+  id               Int       @id @default(autoincrement())
+  messenger        String
+  date             String
+  waiting          Int?
+  avgResponseSec   Int?
+  todayChats       Int?
+  incomingToday    Int?
+  agentMsgToday    Int?
+  timeSpentSec     Int?
+  missedToday      Int?
+  pendingNow       Int?
+  byAgent          String    @default("{}")
+  recordedAt       Int
+
+  @@unique([messenger, date])
+}
+
+model PlanFixConfig {
+  id               Int       @id @default(autoincrement())
+  token            String    @default("")
+  apiBase          String    @default("https://restu.planfix.ru/rest")
+  supportGroupId   Int       @default(185860)
+  templateId       Int       @default(24609)
+  updatedAt        DateTime  @updatedAt
+}
+
+// ── Hub Auth & User Management ──
+
+model HubUser {
+  id            Int        @id @default(autoincrement())
+  telegramId    Int        @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  role          String     @default("engineer")  // admin | service_admin | engineer
+  permissions   String?                          // JSON array of module keys, null = all
+  createdAt     Int
+  lastLoginAt   Int?
+}
+
+model HubSession {
+  token         String     @id
+  userId        Int
+  createdAt     Int
+  expiresAt     Int
+}
+
+model HubSetting {
+  key           String     @id
+  value         String                          // JSON-encoded value
+}
+
+// ── MegaPBX (MegaFon Cloud PBX) ──
+
+model PBXCall {
+  id            Int       @id @default(autoincrement())
+  callid        String    @unique               // PBX call-id
+  phone         String?
+  telnum        String?
+  ext           String?
+  employee      String?
+  direction     String?                         // incoming | outgoing
+  status        String    @default("unknown")   // answered | missed | etc.
+  duration      Int       @default(0)           // seconds
+  recordLink    String?
+  lastCmd       String?
+  createdAt     Int                             // ms timestamp from PBX
+  updatedAt     Int                             // ms timestamp
+  lastEventAt   Int                             // ms timestamp of last event
+
+  @@index([lastEventAt])
+}
+
+model PBXEmployee {
+  id            Int       @id @default(autoincrement())
+  ext           String?
+  name          String
+  login         String?
+  position      String    @default("")
+  mobile        String    @default("")
+  telnum        String    @default("")
+  updatedAt     Int                             // ms timestamp
+}
+
+model PBXRawEvent {
+  id            Int       @id @default(autoincrement())
+  receivedAt    Int                             // ms timestamp
+  authOk        Boolean   @default(false)
+  body          String                          // JSON string of raw payload
+}
+
+model NotifSnooze {
+  chatId       String @id
+  snoozedUntil Int
+}

@@ -29,12 +29,16 @@ class ChatService:
         if status == "answered" or status == "closed":
             is_alerted = True # Для закрытых или отвеченных алерты слать не нужно
 
+        # ActiveChat использует составной ключ (chatId, userId). Для внешних
+        # событий чат-платформы userId совпадает с chatId (как для личных чатов).
         return await db.activechat.upsert(
-            where={"id": chat_id},
+            where={"chatId_userId": {"chatId": chat_id, "userId": chat_id}},
             data={
                 "create": {
-                    "id": chat_id,
+                    "chatId": chat_id,
+                    "userId": chat_id,
                     "clientName": client_name,
+                    "chatTitle": client_name,
                     "externalChatUrl": chat_url,
                     "lastMessage": message_text,
                     "status": status,

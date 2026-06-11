@@ -3,3 +3,5 @@ uvicorn
 pydantic-settings
 aiogram
 prisma
+httpx
+sse-starlette

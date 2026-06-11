@@ -1,0 +1,3715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сервисная поддержка — Реста</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Gridstack CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d2e;
+      border-bottom: 1px solid #2d3148;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    .meta { font-size: 12px; color: #64748b; }
+
+    footer {
+      background: #1a1d2e;
+      border-top: 1px solid #2d3148;
+      padding: 14px 24px;
+      margin-top: 8px;
+    }
+    .footer-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: #4a5568;
+    }
+    .footer-brand { font-weight: 700; color: #64748b; letter-spacing: 0.03em; }
+    .footer-accent { color: #E8935A; }
+    .footer-sep { color: #2d3148; }
+
+    #refresh-btn {
+      background: #E8935A;
+      border: none; color: #fff;
+      padding: 8px 20px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.02em;
+      box-shadow: 0 0 12px rgba(232,147,90,0.35), 0 2px 6px rgba(0,0,0,0.3);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    #refresh-btn:hover {
+      background: #f0a06a;
+      box-shadow: 0 0 20px rgba(232,147,90,0.5), 0 4px 10px rgba(0,0,0,0.3);
+      transform: translateY(-1px);
+    }
+    #refresh-btn:active { transform: translateY(0); }
+    #refresh-btn:disabled { background: #2d3148; color: #64748b; cursor: not-allowed; box-shadow: none; }
+
+    #edit-layout-btn {
+      background: transparent;
+      border: 1px solid #3b4fd8;
+      color: #93a8f4;
+      padding: 8px 16px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    #edit-layout-btn:hover { background: #1e2547; }
+    #edit-layout-btn.active {
+      background: #1e2547;
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* ── KPI Cards ── */
+    .kpi-card {
+      background: #1a1d2e; border: 1px solid #2a2f48;
+      border-radius: 12px; padding: 18px 18px 14px;
+      position: relative; cursor: default;
+      border-left-width: 4px;
+      display: flex; flex-direction: column; gap: 0;
+      height: 100%; box-sizing: border-box;
+    }
+    /* Полупрозрачный блик сверху */
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    .kpi-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;
+    }
+    .kpi-card .label {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.1em; color: #64748b;
+      display: flex; align-items: center; gap: 5px;
+      flex: 1;
+    }
+    .kpi-card .label .info-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: #2d3148; color: #64748b;
+      font-size: 8px; font-weight: 700; line-height: 1;
+      flex-shrink: 0; cursor: help;
+    }
+    .kpi-emoji {
+      font-size: 24px; line-height: 1; opacity: 0.65;
+      flex-shrink: 0; margin-left: 8px;
+      filter: drop-shadow(0 0 6px currentColor);
+    }
+    .kpi-card .value {
+      font-size: 28px; font-weight: 800; line-height: 1.1;
+      margin-bottom: 10px; letter-spacing: -0.5px;
+    }
+    .kpi-card .sub { display: none; }
+
+    /* Теги с доп.инфой */
+    .kpi-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+    .kpi-tag {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 3px;
+      font-weight: 500; letter-spacing: 0.02em;
+    }
+    .kpi-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Нижняя строка */
+    .kpi-footer {
+      margin-top: auto; padding-top: 8px;
+      border-top: 1px solid #2d3148;
+      font-size: 10px; color: #475569;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .kpi-trend-up   { color: #4ade80; font-weight: 600; }
+    .kpi-trend-down { color: #f87171; font-weight: 600; }
+    .kpi-trend-neu  { color: #94a3b8; font-weight: 600; }
+
+    /* today sub */
+    .kpi-card .today-sub {
+      font-size: 10px; color: #475569; margin-top: -6px; margin-bottom: 8px;
+    }
+
+    /* Кнопка обновления на карточке */
+    .card-refresh-btn {
+      background: rgba(232,147,90,0.12);
+      border: 1px solid rgba(232,147,90,0.25);
+      cursor: pointer; color: #E8935A;
+      font-size: 11px; font-weight: 700; line-height: 1;
+      padding: 2px 5px; border-radius: 4px;
+      transition: background 0.2s, box-shadow 0.2s, color 0.2s, opacity 0.2s, transform 0.15s;
+      opacity: 0; flex-shrink: 0;
+    }
+    /* В KPI-карточках — инлайн рядом с ? */
+    .kpi-card .card-refresh-btn { display: inline-flex; align-items: center; }
+    /* В панелях — отдельно, всегда видимая */
+    .panel .card-refresh-btn {
+      display: inline-flex; align-items: center;
+      opacity: 1; position: static;
+    }
+    .kpi-card:hover .card-refresh-btn { opacity: 1; }
+    .card-refresh-btn:hover {
+      background: rgba(232,147,90,0.25);
+      box-shadow: 0 0 10px rgba(232,147,90,0.3);
+      color: #f0a06a;
+      transform: translateY(-1px);
+    }
+    .card-refresh-btn:active { transform: translateY(0); }
+    .card-refresh-btn.spinning {
+      opacity: 1;
+    }
+    .card-refresh-btn.spinning .btn-icon {
+      display: inline-block;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Collapse панелей ── */
+    .panel-collapse-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 4px;
+      background: transparent; border: 1px solid #2d3148;
+      color: #64748b; font-size: 11px; cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      flex-shrink: 0; margin-left: 2px;
+    }
+    .panel-collapse-btn:hover { background: #1e2547; color: #93a8f4; border-color: #3b4fd8; }
+    .grid-stack-item.pf-collapsed .panel > *:not(h2) { display: none !important; }
+    .grid-stack-item.pf-collapsed .panel { overflow: hidden; }
+
+    .kpi-card .today-sub {
+      font-size: 11px; color: #64748b; margin-top: 4px;
+    }
+    /* Pantone 7458 C — soft sky blue: "Сегодня" */
+    .kpi-card.pantone-sky {
+      border-left-color: #8BBDE5;
+      background: linear-gradient(135deg, #1e2a3a 0%, #162130 100%);
+    }
+    .kpi-card.pantone-sky .value { color: #A8D4F0; font-size: 22px; }
+
+    /* Pantone 7457 C — powder blue: "Всего задач" */
+    .kpi-card.pantone-blue {
+      border-left-color: #A8C8E8;
+      background: linear-gradient(135deg, #1c2840 0%, #141e30 100%);
+    }
+    .kpi-card.pantone-blue .value { color: #C0DCFA; }
+
+    /* Pantone 7506 C — warm straw: "Открытых" */
+    .kpi-card.pantone-amber {
+      border-left-color: #E8C87A;
+      background: linear-gradient(135deg, #2a2518 0%, #1e1c10 100%);
+    }
+    .kpi-card.pantone-amber .value { color: #F0D890; }
+
+    /* Pantone 7494 C — sage green: "Завершённых" */
+    .kpi-card.pantone-teal {
+      border-left-color: #8AC87A;
+      background: linear-gradient(135deg, #1a2818 0%, #121e10 100%);
+    }
+    .kpi-card.pantone-teal .value { color: #A0DC8C; }
+
+    /* Pantone 7520 C — dusty coral: "Просрочено" */
+    .kpi-card.pantone-red {
+      border-left-color: #E87A5A;
+      background: linear-gradient(135deg, #2a1c18 0%, #1e1210 100%);
+    }
+    .kpi-card.pantone-red .value { color: #F0907A; }
+
+    /* Pantone 7472 C — sea glass: "В рамках SLA" */
+    .kpi-card.pantone-green {
+      border-left-color: #6ACFBF;
+      background: linear-gradient(135deg, #152622 0%, #0f1e1a 100%);
+    }
+    .kpi-card.pantone-green .value { color: #80DFD0; }
+
+    /* Dynamic SLA % */
+    .kpi-card.pantone-sla-ok {
+      border-left-color: #6ACFBF;
+      background: linear-gradient(135deg, #152622 0%, #0f1e1a 100%);
+    }
+    .kpi-card.pantone-sla-ok .value { color: #80DFD0; }
+    .kpi-card.pantone-sla-warning {
+      border-left-color: #E8C87A;
+      background: linear-gradient(135deg, #2a2518 0%, #1e1c10 100%);
+    }
+    .kpi-card.pantone-sla-warning .value { color: #F0D890; }
+    .kpi-card.pantone-sla-danger {
+      border-left-color: #E87A5A;
+      background: linear-gradient(135deg, #2a1c18 0%, #1e1210 100%);
+    }
+    .kpi-card.pantone-sla-danger .value { color: #F0907A; }
+
+    /* Pantone 5275 C — muted lavender: "Запрос информации" */
+    .kpi-card.pantone-gold {
+      border-left-color: #B09ECC;
+      background: linear-gradient(135deg, #221e30 0%, #18152a 100%);
+    }
+    .kpi-card.pantone-gold .value { color: #C8B8E8; }
+
+    /* Pantone 7523 C — terracotta: "Доработка" */
+    .kpi-card.pantone-orange {
+      border-left-color: #D4785A;
+      background: linear-gradient(135deg, #2a1c18 0%, #1e1410 100%);
+    }
+    .kpi-card.pantone-orange .value { color: #E8907A; }
+
+    /* Pantone 7527 C — warm gray: "Нераспределённые" */
+    .kpi-card.pantone-warm {
+      border-left-color: #C8A882;
+      background: linear-gradient(135deg, #26221a 0%, #1c1a14 100%);
+    }
+    .kpi-card.pantone-warm .value { color: #DEC49A; }
+
+    /* Pantone 7545 C — slate blue: "Ср. время жизни" */
+    .kpi-card.pantone-slate {
+      border-left-color: #7A92A8;
+      background: linear-gradient(135deg, #1a2030 0%, #141820 100%);
+    }
+    .kpi-card.pantone-slate .value { color: #9AB4CC; }
+
+    /* Pantone 7476 C — pine green: "Ср. время закрытия" */
+    .kpi-card.pantone-pine {
+      border-left-color: #6A9E8C;
+      background: linear-gradient(135deg, #162420 0%, #101c18 100%);
+    }
+    .kpi-card.pantone-pine .value { color: #86C0AC; }
+
+    /* ── KPI Animations ── */
+    @keyframes kpiEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+    @keyframes kpiValuePop {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+    @keyframes kpiBorderPulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .kpi-card {
+      animation: kpiEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      transition: transform 0.22s ease, box-shadow 0.22s ease;
+    }
+    .kpi-card:hover {
+      transform: translateY(-4px);
+      z-index: 2;
+    }
+    /* Свечение по цвету карточки при наведении */
+    .kpi-card.pantone-blue:hover    { box-shadow: 0 10px 32px rgba(168,200,232,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-amber:hover   { box-shadow: 0 10px 32px rgba(232,200,122,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-teal:hover    { box-shadow: 0 10px 32px rgba(138,200,122,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-red:hover     { box-shadow: 0 10px 32px rgba(232,122, 90,0.22), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-green:hover   { box-shadow: 0 10px 32px rgba(106,207,191,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-gold:hover    { box-shadow: 0 10px 32px rgba(176,158,204,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-orange:hover  { box-shadow: 0 10px 32px rgba(212,120, 90,0.22), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-warm:hover    { box-shadow: 0 10px 32px rgba(200,168,130,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-slate:hover   { box-shadow: 0 10px 32px rgba(122,146,168,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-pine:hover    { box-shadow: 0 10px 32px rgba(106,158,140,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-sla-ok:hover      { box-shadow: 0 10px 32px rgba(106,207,191,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-sla-warning:hover { box-shadow: 0 10px 32px rgba(232,200,122,0.20), 0 2px 8px rgba(0,0,0,0.4); }
+    .kpi-card.pantone-sla-danger:hover  { box-shadow: 0 10px 32px rgba(232,122, 90,0.22), 0 2px 8px rgba(0,0,0,0.4); }
+
+    /* Эмодзи: подпрыгивает при наведении */
+    .kpi-emoji {
+      transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), opacity 0.2s ease;
+    }
+    .kpi-card:hover .kpi-emoji {
+      transform: scale(1.25) rotate(-8deg);
+      opacity: 0.9;
+    }
+
+    /* Значение: плавное изменение цвета + pop при обновлении */
+    .kpi-card .value {
+      transition: color 0.3s ease;
+      display: inline-block;
+    }
+    .kpi-value-pop {
+      animation: kpiValuePop 0.38s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    /* Tooltip */
+    .kpi-tooltip {
+      position: absolute; top: calc(100% + 10px); left: 50%;
+      transform: translateX(-50%);
+      background: #1e2547; color: #94a3b8;
+      font-size: 11px; line-height: 1.6;
+      padding: 10px 12px; border-radius: 8px;
+      width: 240px; pointer-events: none;
+      opacity: 0; transition: opacity 0.15s;
+      border: 1px solid #3b4fd8;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      z-index: 100; text-align: left;
+      text-transform: none; letter-spacing: 0; font-weight: 400;
+    }
+    .kpi-tooltip::before {
+      content: ''; position: absolute; bottom: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-bottom-color: #3b4fd8;
+    }
+    .kpi-card:hover .kpi-tooltip { opacity: 1; }
+
+    /* ── Gridstack dark theme overrides ── */
+    .grid-stack {
+      background: transparent;
+    }
+    .grid-stack-item-content {
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+    }
+    /* In edit mode — show dashed border on items */
+    .grid-stack.edit-mode .grid-stack-item-content {
+      outline: 2px dashed #3b4fd8;
+      outline-offset: -2px;
+      border-radius: 10px !important;
+      cursor: move;
+    }
+    .grid-stack.edit-mode .grid-stack-item > .ui-resizable-handle {
+      opacity: 1;
+    }
+    /* Hide resize handles when not in edit mode */
+    .grid-stack:not(.edit-mode) .grid-stack-item > .ui-resizable-handle {
+      display: none !important;
+    }
+    /* Make .panel fill full height inside gridstack items */
+    .grid-stack-item-content > .panel {
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Chart panel — canvas растягивается */
+    #chart-panel .panel { overflow: hidden; }
+    #chart-panel #day-chart { flex: 1; min-height: 0; position: relative; }
+    /* Make kpi-card fill full height inside gridstack items */
+    .grid-stack-item-content .kpi-card {
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .panel {
+      background: #1a1d2e; border: 1px solid #2d3148;
+      border-radius: 10px; padding: 20px;
+    }
+    .panel h2 {
+      font-size: 14px; font-weight: 600; color: #94a3b8;
+      margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+
+    .status-list { display: flex; flex-direction: column; gap: 8px; }
+    .status-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-bar-wrap { flex: 1; background: #2d3148; border-radius: 4px; height: 6px; overflow: hidden; }
+    .status-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    .status-count { font-weight: 600; min-width: 28px; text-align: right; }
+
+    /* ── Панель дежурства ── */
+    .duty-shift { margin-bottom: 14px; }
+    .duty-shift-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #64748b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+    }
+    .duty-persons { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* Группировка в таблице нагрузки */
+    .ag-group-header td {
+      background: #141820; padding: 6px 10px;
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #64748b; cursor: pointer; user-select: none;
+      border-bottom: 1px solid #2d3148;
+    }
+    .ag-group-header td:hover { color: #94a3b8; }
+    .ag-group-toggle { font-size: 9px; margin-right: 6px; display: inline-block; transition: transform 0.15s; }
+    .ag-group-count { margin-left: 6px; color: #3d4a5c; font-size: 10px; }
+    .duty-person {
+      display: flex; flex-direction: column; gap: 0;
+      background: #141820; border: 1px solid #2d3148;
+      border-radius: 8px; padding: 8px 12px;
+      flex: 1; min-width: 170px;
+    }
+    /* Тултип-сноска "?" внутри карточки */
+    .duty-hint {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 11px; height: 11px; border-radius: 50%;
+      background: #1e2235; color: #475569; font-size: 8px;
+      cursor: help; position: relative; flex-shrink: 0;
+    }
+    .duty-hint-popup {
+      display: none; position: fixed;
+      background: #1e2547; border: 1px solid #3b4fd8;
+      border-radius: 8px; padding: 8px 10px;
+      width: 210px; font-size: 10px; color: #94a3b8;
+      line-height: 1.5; z-index: 9999;
+      white-space: normal; text-transform: none; letter-spacing: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none;
+    }
+    .duty-hint:hover .duty-hint-popup { display: block; }
+    .duty-role-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 5px;
+      border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .role-тимлид  { background: #2e2200; color: #fbbf24; border: 1px solid #5a4400; }
+    .role-1лн     { background: #0c2420; color: #5ABEAA; border: 1px solid #1a4038; }
+    .role-подхват { background: #1c2028; color: #94a3b8; border: 1px solid #303848; }
+    .role-standard{ background: #0e1e30; color: #A8C8E8; border: 1px solid #1a3050; }
+    .duty-person-name { font-size: 12px; color: #e2e8f0; }
+    .duty-divider { height: 1px; background: #2d3148; margin: 12px 0; }
+
+    .duty-stats-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    .duty-stats-table th {
+      text-align: left; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #64748b; padding: 0 8px 8px; border-bottom: 1px solid #2d3148;
+    }
+    .th-hint { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+    .th-hint-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: #2d3148; color: #64748b;
+      font-size: 8px; font-weight: 700; cursor: help; flex-shrink: 0;
+      text-transform: none; letter-spacing: 0;
+    }
+    .th-hint-popup {
+      display: none; position: fixed;
+      background: #1e2547; border: 1px solid #3b4fd8;
+      border-radius: 8px; padding: 10px 12px;
+      width: 230px; font-size: 11px; color: #94a3b8;
+      line-height: 1.6; z-index: 9999; text-transform: none; letter-spacing: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none;
+    }
+    .th-hint:hover .th-hint-popup { display: block; }
+
+    /* Тултип на ячейке имени сотрудника */
+    .td-name-wrap { position: relative; display: inline-block; cursor: default; }
+    .td-name-popup {
+      display: none; position: absolute; top: 50%; left: calc(100% + 10px);
+      transform: translateY(-50%);
+      background: #1e2547; border: 1px solid #3b4fd8;
+      border-radius: 8px; padding: 10px 12px;
+      width: 210px; font-size: 11px; color: #94a3b8;
+      line-height: 1.5; z-index: 200; text-transform: none; letter-spacing: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4); pointer-events: none;
+    }
+    .td-name-popup::before {
+      content: ''; position: absolute; right: 100%; top: 50%;
+      transform: translateY(-50%);
+      border: 6px solid transparent; border-right-color: #3b4fd8;
+    }
+    .td-name-wrap:hover .td-name-popup { display: block; }
+    .duty-stats-table td { padding: 6px 8px; border-bottom: 1px solid #1e2235; }
+    .duty-stats-table tr:last-child td { border-bottom: none; }
+    .duty-stats-table tr.duty-period-header td {
+      background: #141820; color: #64748b; font-size: 10px;
+      padding: 4px 8px; border-bottom: 1px solid #2d3148;
+    }
+    .duty-stat-val { font-weight: 600; }
+
+    /* Компактные цифры внутри карточки дежурного */
+    .duty-person-today { display: flex; gap: 12px; margin-left: auto; }
+    .duty-today-num { text-align: center; }
+    .duty-today-num .val { font-size: 15px; font-weight: 700; }
+    .duty-today-num .lbl { font-size: 9px; color: #64748b; }
+
+    /* Модальное окно расписания */
+    .duty-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+    }
+    .duty-modal {
+      background: #1a1d2e; border: 1px solid #2d3148; border-radius: 12px;
+      padding: 24px; width: 780px; max-width: 96vw; max-height: 88vh;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .duty-modal-btn {
+      padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px;
+    }
+    .duty-modal-btn.save { background: #3b4fd8; color: #fff; }
+    .duty-modal-btn.save:hover { background: #4f63e8; }
+    .duty-modal-btn.cancel { background: #2d3148; color: #94a3b8; }
+    .duty-modal-btn.cancel:hover { background: #374151; }
+
+    /* DSE — Duty Schedule Editor */
+    .dse-header {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .dse-header h3 { flex: 1; color: #e2e8f0; font-size: 16px; margin: 0; }
+    .dse-close {
+      background: none; border: none; color: #64748b; font-size: 18px;
+      cursor: pointer; padding: 2px 8px; border-radius: 4px; line-height: 1;
+    }
+    .dse-close:hover { background: #2d3148; color: #e2e8f0; }
+    .dse-back {
+      background: none; border: 1px solid #2d3148; color: #64748b;
+      font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer;
+    }
+    .dse-back:hover { background: #2d3148; color: #e2e8f0; }
+    .dse-footer {
+      display: flex; gap: 8px; align-items: center;
+      border-top: 1px solid #2d3148; padding-top: 14px; flex-shrink: 0;
+    }
+    .dse-footer-spacer { flex: 1; }
+
+    /* List view */
+    .dse-list-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .dse-period-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; background: #141625;
+      border: 1px solid #2d3148; border-radius: 8px; transition: border-color 0.15s;
+    }
+    .dse-period-row:hover { border-color: #3b4fd8; }
+    .dse-period-dates { font-size: 13px; color: #e2e8f0; font-weight: 500; min-width: 150px; }
+    .dse-period-type { font-size: 11px; color: #64748b; min-width: 130px; }
+    .dse-period-people { flex: 1; font-size: 11px; color: #64748b; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .dse-period-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .dse-icon-btn {
+      background: none; border: none; cursor: pointer; font-size: 14px;
+      padding: 4px 7px; border-radius: 4px; line-height: 1; opacity: 0.7; transition: all 0.15s;
+    }
+    .dse-icon-btn:hover { background: #2d3148; opacity: 1; }
+    .dse-icon-btn.del:hover { background: rgba(239,68,68,0.15); }
+    .dse-add-btn {
+      background: #141625; border: 1px dashed #3b4fd8; color: #93a8f4;
+      padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+      text-align: center; transition: background 0.15s;
+    }
+    .dse-add-btn:hover { background: #1e2547; }
+    .dse-empty { text-align: center; padding: 32px; color: #64748b; font-size: 14px; }
+
+    /* Edit view */
+    .dse-edit-wrap { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .dse-row { display: flex; gap: 16px; }
+    .dse-field { display: flex; flex-direction: column; gap: 6px; }
+    .dse-field label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+    .dse-date-input, .dse-text-input {
+      background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0;
+      padding: 8px 12px; border-radius: 6px; font-size: 13px;
+      transition: border-color 0.15s;
+    }
+    .dse-date-input:focus, .dse-text-input:focus { outline: none; border-color: #3b4fd8; }
+    .dse-type-toggle { display: flex; gap: 8px; }
+    .dse-type-btn {
+      background: #0f1117; border: 1px solid #2d3148; color: #64748b;
+      padding: 9px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.15s;
+    }
+    .dse-type-btn.active { background: #1e2547; border-color: #3b4fd8; color: #93a8f4; font-weight: 500; }
+
+    /* Staff sections */
+    .dse-staff-section { border: 1px solid #2d3148; border-radius: 8px; overflow: hidden; }
+    .dse-staff-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 14px; background: #111422; font-size: 13px; font-weight: 500; color: #94a3b8;
+    }
+    .dse-sm-btn {
+      background: transparent; border: 1px solid #3b4fd8; color: #93a8f4;
+      padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: background 0.15s;
+    }
+    .dse-sm-btn:hover { background: #1e2547; }
+    .dse-staff-row {
+      display: flex; gap: 8px; align-items: center; padding: 8px 14px;
+      border-top: 1px solid #1e2235;
+    }
+    .dse-staff-row:hover { background: #0f1117; }
+    .dse-name-input {
+      flex: 1; background: #0f1117; border: 1px solid #2d3148; color: #e2e8f0;
+      padding: 6px 10px; border-radius: 5px; font-size: 13px; min-width: 0;
+      transition: border-color 0.15s;
+    }
+    .dse-name-input:focus { outline: none; border-color: #3b4fd8; }
+    .dse-role-select {
+      background: #0f1117; border: 1px solid #2d3148; color: #94a3b8;
+      padding: 6px 8px; border-radius: 5px; font-size: 12px; min-width: 140px;
+    }
+    .dse-staff-empty { padding: 10px 14px; font-size: 12px; color: #64748b; font-style: italic; }
+
+    .assignee-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .assignee-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #64748b;
+      padding: 0 8px 10px; border-bottom: 1px solid #2d3148;
+    }
+    .assignee-table td { padding: 8px 8px; border-bottom: 1px solid #1e2235; vertical-align: middle; }
+    .assignee-table tr:last-child td { border-bottom: none; }
+
+    /* Throughput bars */
+    .tp-row { display: flex; flex-direction: column; gap: 3px; min-width: 120px; }
+    .tp-line { display: flex; align-items: center; gap: 6px; }
+    .tp-label { font-size: 10px; color: #64748b; width: 16px; flex-shrink: 0; }
+    .tp-bar-bg { flex: 1; background: #2d3148; border-radius: 3px; height: 8px; overflow: hidden; }
+    .tp-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .tp-val { font-size: 11px; font-weight: 600; width: 36px; text-align: right; flex-shrink: 0; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-red { background: #7f1d1d; color: #fca5a5; }
+    .badge-green { background: #14532d; color: #86efac; }
+
+    .task-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .task-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #64748b;
+      padding: 0 10px 10px; border-bottom: 1px solid #2d3148; white-space: nowrap;
+    }
+    .task-table td { padding: 10px; border-bottom: 1px solid #1e2235; vertical-align: top; }
+    .task-table tr:last-child td { border-bottom: none; }
+    .task-table tr.overdue td { background: rgba(127,29,29,0.12); }
+    .task-name { color: #e2e8f0; font-weight: 500; }
+    .task-client { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+    .sla-ok { color: #34d399; font-weight: 600; }
+    .sla-bad { color: #f87171; font-weight: 600; }
+    .status-chip {
+      display: inline-block; padding: 3px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 500; background: #2d3148; color: #94a3b8; white-space: nowrap;
+    }
+    .status-chip.active-chip { background: #1e3a5f; color: #60a5fa; }
+    .status-chip.overdue-chip { background: #7f1d1d; color: #fca5a5; }
+
+    .loading { text-align: center; color: #64748b; padding: 40px; font-size: 14px; }
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 2px solid #2d3148; border-top-color: #3b4fd8;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-msg {
+      background: #7f1d1d22; border: 1px solid #7f1d1d;
+      color: #fca5a5; padding: 12px 16px; border-radius: 8px;
+      font-size: 13px; margin-bottom: 16px;
+    }
+
+    .bar-chart { display: flex; flex-direction: column; gap: 3px; }
+    .bar-day { display: flex; align-items: flex-start; gap: 8px; font-size: 11px; margin-bottom: 2px; }
+    .bar-label { width: 38px; color: #64748b; text-align: right; flex-shrink: 0; padding-top: 2px; }
+    .bar-cols { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .bar-outer { width: 100%; background: #2d3148; border-radius: 3px; height: 12px; overflow: hidden; }
+    .bar-inner {
+      height: 100%; border-radius: 3px;
+      display: flex; align-items: center; padding-left: 5px; min-width: 2px;
+    }
+    .bar-inner.created { background: #C4604A; }
+    .bar-inner.resolved { background: #4a8a6a; }
+    .bar-val { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.9); white-space: nowrap; }
+    .chart-legend { display: flex; gap: 16px; margin-bottom: 10px; font-size: 11px; color: #94a3b8; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <a href="hub.html" style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;text-decoration:none;padding:5px 10px;border:1px solid #2d3148;border-radius:6px;transition:color 0.2s,border-color 0.2s;" onmouseover="this.style.color='#E8935A';this.style.borderColor='#E8935A'" onmouseout="this.style.color='#64748b';this.style.borderColor='#2d3148'">
+      ← Портал
+    </a>
+    <img src="Реста_хорека_цветной_логотип_вертикальный.png"
+         alt="Реста" height="36"
+         style="border-radius:5px;background:#fff;padding:3px 7px;object-fit:contain;" />
+    <h1>Сервисная поддержка</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="meta" id="last-update">—</span>
+    <button id="edit-layout-btn" onclick="toggleEditMode()">Редактировать макет</button>
+    <button id="refresh-btn" onclick="loadAll(true)">↻ Обновить всё</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="error-area"></div>
+
+  <!-- Gridstack panels -->
+  <div class="grid-stack" id="main-grid">
+    <div class="grid-stack-item" gs-x="0" gs-y="0" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-active">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-amber" data-refresh="open">
+          <div class="kpi-card-top">
+            <div class="label">Открытых <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">⚡</span>
+          </div>
+          <div class="value" id="kpi-active">—</div>
+          <div class="kpi-tags" id="kpi-active-tags"></div>
+          <div class="kpi-footer" id="kpi-active-footer"></div>
+          <div class="kpi-tooltip">Задачи в активной работе — без «Отложенных» и «Завершённых».<br><br><b>Считаются статусы:</b><br>• Новая (1) · В работе (2)<br>• Принят в работу (186)<br>• Запрос информации (109)<br>• Доработка (114)<br>• Перераспределение (141)<br>• В ожидании (202)<br><br>Используется как знаменатель в расчёте % SLA. Источник: те же данные, что и «Всего задач».</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="6" gs-y="0" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-completed">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-teal" data-refresh="completed">
+          <div class="kpi-card-top">
+            <div class="label">Завершённых <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">✅</span>
+          </div>
+          <div class="value" id="kpi-completed">—</div>
+          <div class="kpi-tags" id="kpi-completed-tags"></div>
+          <div class="kpi-footer" id="kpi-completed-footer"></div>
+          <div class="kpi-tooltip" id="kpi-completed-tip">Задачи фактически завершённые в текущем месяце.</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="3" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-breached">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-red" data-refresh="open">
+          <div class="kpi-card-top">
+            <div class="label">Просрочено <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">⚠️</span>
+          </div>
+          <div class="value" id="kpi-breached">—</div>
+          <div class="kpi-tags" id="kpi-breached-tags"></div>
+          <div class="kpi-footer" id="kpi-breached-footer"></div>
+          <div class="kpi-tooltip">Активные задачи, открытые &gt; 3 рабочих дней.<br><br><b>Расчёт:</b> рабочие дни (пн–пт) от даты создания до сегодня &gt; 3.<br><br><b>Не попадают:</b> «Отложенные» (даже если старые) — они не активные.<br><br><b>Источник поля:</b> dateTime.dateTimeUtcSeconds из /task/list.<br><br>⚠️ SLA-норматив: закрыть или дать ответ за 3 рабочих дня.</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="3" gs-y="3" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-rework">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-orange" data-refresh="open">
+          <div class="kpi-card-top">
+            <div class="label">Доработка <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">🔧</span>
+          </div>
+          <div class="value" id="kpi-rework">—</div>
+          <div class="kpi-tags" id="kpi-rework-tags"></div>
+          <div class="kpi-footer" id="kpi-rework-footer"></div>
+          <div class="kpi-tooltip">Задачи со статусом <b>«Доработка»</b>.<br><br>Возвращены на повторное выполнение.</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="9" gs-y="3" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-today">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-sky" data-refresh="today">
+          <div class="kpi-card-top">
+            <div class="label">Сегодня <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">📅</span>
+          </div>
+          <div class="value" id="kpi-today-val">— / —</div>
+          <div class="today-sub">создано / решено</div>
+          <div class="kpi-tags" id="kpi-today-tags"></div>
+          <div class="kpi-footer" id="kpi-today-footer"></div>
+          <div class="kpi-tooltip">Задачи за сегодняшний день.<br><br><b>Создано</b> — фильтр тип 12 (дата создания) = сегодня.<br><b>Решено</b> — два запроса с дедупликацией:<br>① статус «Завершена» + тип 19 = сегодня<br>② статус «Доработка» + тип 19 = сегодня (закрытые сегодня, потом переоткрытые)<br><br>Совпадает с PlanFix UI «Дата перевода в статус Завершённая».</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="6" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-unassigned">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-warm" data-refresh="open">
+          <div class="kpi-card-top">
+            <div class="label">Нераспределённые <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">👥</span>
+          </div>
+          <div class="value" id="kpi-unassigned-val">—</div>
+          <div class="kpi-tags" id="kpi-unassigned-tags"></div>
+          <div class="kpi-footer" id="kpi-unassigned-footer"></div>
+          <div class="kpi-tooltip">Задачи без конкретного исполнителя — только группа <b>Service_Support</b>.<br><br>Учитываются задачи созданные с <b>01.01.2026</b>.<br><br>Требуют ручного распределения.</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="3" gs-y="6" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-avg-close">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-pine" data-refresh="avgclose">
+          <div class="kpi-card-top">
+            <div class="label">Ср. время закрытия <span class="info-icon">?</span></div>
+            <span class="kpi-emoji">⏳</span>
+          </div>
+          <div class="value" id="kpi-avg-close-val">...</div>
+          <div class="kpi-tags" id="kpi-close-tags"></div>
+          <div class="kpi-footer" id="kpi-close-footer"></div>
+          <div class="kpi-tooltip">Среднее время жизни задач, закрытых в этом месяце.<br><br><b>Фильтр API:</b> тип 19 (дата закрытия) за текущий месяц, статус id=3.<br><b>Расчёт:</b> рабочие дни от создания до <b>сегодня</b>.<br><br>⚠️ <b>Ограничение точности:</b> вместо даты закрытия используется сегодняшний день — задачи, закрытые в начале месяца, дают завышенный показатель.<br><br><span style="color:#64748b;">Метрика достоверна в середине/конце месяца. В начале месяца — ориентировочная.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="9" gs-y="6" gs-w="3" gs-h="3" gs-min-w="2" gs-min-h="2" gs-id="kpi-urgent">
+      <div class="grid-stack-item-content">
+        <div class="kpi-card pantone-warm" data-refresh="open">
+          <div class="kpi-card-top">
+            <div class="label">Срочные <span class="info-icon">?</span><span class="info-icon" onclick="openUrgentTasksModal(event)" title="Список срочных задач" style="margin-left:3px;cursor:pointer;">📋</span></div>
+            <span class="kpi-emoji">🚨</span>
+          </div>
+          <div class="value" id="kpi-urgent-val">—</div>
+          <div class="kpi-tags" id="kpi-urgent-tags"></div>
+          <div class="kpi-footer" id="kpi-urgent-footer"></div>
+          <div class="kpi-tooltip">Открытые задачи с флажком <b>«Срочная»</b>.<br><br>Стандартное поле PlanFix — выставляется вручную при создании или в процессе работы.</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="9" gs-w="12" gs-h="7" gs-min-w="6" gs-min-h="5" gs-id="appeals-panel">
+      <div class="grid-stack-item-content">
+        <div class="panel">
+          <h2>Типы обращений <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('open',this)"><span class="btn-icon">↻</span></button><span class="th-hint" style="vertical-align:middle;margin-left:4px;"><span class="th-hint-icon">?</span><div class="th-hint-popup left" style="width:300px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;">Разбивка <b style="color:#e2e8f0;">открытых задач</b> по трём полям PlanFix:<br><br>🗂️ <b style="color:#e2e8f0;">Тип обращения</b> — Инцидент, Настройка, Консультация и др.<br>🚗 <b style="color:#e2e8f0;">Выезд</b> — требуется ли выезд специалиста<br>🏷️ <b style="color:#e2e8f0;">Категория запроса</b> — детальная классификация<br><br>Поля только внедряются — у части задач значения ещё не заполнены.</div></span></h2>
+          <div id="appeals-area" style="display:flex;gap:20px;flex:1;min-height:0;overflow:hidden;">
+            <div class="loading"><span class="spinner"></span>Загрузка...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="16" gs-w="5" gs-h="9" gs-id="duty-panel">
+      <div class="grid-stack-item-content">
+        <div class="panel">
+          <h2 id="duty-panel-title">Дежурство
+            <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('duty',this)"><span class="btn-icon">↻</span></button><span class="th-hint" style="vertical-align:middle;margin-left:4px;"><span class="th-hint-icon">?</span><div class="th-hint-popup left" style="width:300px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;">Статистика дежурств по сотрудникам за <b style="color:#e2e8f0;">текущий месяц</b>.<br><br>📅 <b style="color:#e2e8f0;">Расписание</b> — задаётся вручную в коде (DUTY_SCHEDULE)<br>📊 <b style="color:#e2e8f0;">Создал</b> — задачи, где дежурный является <b style="color:#e2e8f0;">постановщиком</b> (поставил сам, принимая обращения клиентов)<br>✅ <b style="color:#e2e8f0;">Закрыл</b> — задачи, где дежурный является исполнителем, закрытые в период смены<br><br>⚠️ До 08:00 показывается вечерняя смена предыдущего дня (ночное дежурство).<br><br>Кнопка 📅 Расписание — редактировать дежурный график.</div></span>
+            <button onclick="openDutyScheduleEditor()" style="background:transparent;border:1px solid #2d3148;color:#64748b;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;margin-left:4px;">📅 Расписание</button>
+          </h2>
+          <div id="duty-area"><div class="loading"><span class="spinner"></span>Загрузка...</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="25" gs-w="12" gs-h="9" gs-id="assignee-panel">
+      <div class="grid-stack-item-content">
+        <div class="panel">
+          <h2>Нагрузка по сотрудникам <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('assignee',this)"><span class="btn-icon">↻</span></button><span class="th-hint" style="vertical-align:middle;margin-left:4px;"><span class="th-hint-icon">?</span><div class="th-hint-popup left" style="width:320px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;">Таблица активности инженеров за <b style="color:#e2e8f0;">текущий месяц</b>.<br><br>📂 <b style="color:#C4604A;">Открытых сейчас</b> — текущая очередь (все месяцы; источник: /task/list, фильтр тип 10≠3)<br>✓ <b style="color:#5ABEAA;">Закрыто</b> — дата закрытия в этом месяце (тип 19)<br>⏳ <b style="color:#94a3b8;">Бэклог</b> — открытые, созданные до 1-го числа<br>⚡ <b style="color:#7DD3FC;">В среднем/день</b> — закрыто ÷ дней прошло с 1-го<br>⚖️ <b style="color:#E8C87A;">Взв. нагрузка</b> — сумма весов (поле #113716) закрытых задач<br>📅 <b style="color:#A78BFA;">Сегодня</b> — закрыто сегодня, где исполнитель (тип 19 = сегодня)<br><br>Клик по имени — распределение задач по весу. Клик по заголовку — сортировка.</div></span></h2>
+          <div id="assignee-area">
+            <div class="loading"><span class="spinner"></span>Загрузка...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="0" gs-y="34" gs-w="12" gs-h="9" gs-min-w="6" gs-min-h="5" gs-id="clients-panel">
+      <div class="grid-stack-item-content">
+        <div class="panel">
+          <h2 id="clients-panel-title">Топ клиентов за месяц <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('clients',this)"><span class="btn-icon">↻</span></button></h2>
+          <div id="clients-area" style="display:flex;flex:1;min-height:0;overflow:hidden;">
+            <div class="loading"><span class="spinner"></span>Загрузка...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-stack-item" gs-x="5" gs-y="16" gs-w="7" gs-h="9" gs-id="chart-panel">
+      <div class="grid-stack-item-content">
+        <div class="panel">
+          <h2 id="chart-title">Создано / Решено — загрузка...
+            <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('chart',this)"><span class="btn-icon">↻</span></button>
+            <button onclick="openChartInfoModal()" style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2d3148;border:none;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;margin-left:2px;transition:background 0.2s,color 0.2s;" onmouseover="this.style.background='#3b4fd8';this.style.color='#fff'" onmouseout="this.style.background='#2d3148';this.style.color='#64748b'">?</button>
+          </h2>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#C4604A"></div>Создано</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#5ABEAA"></div>Решено</div>
+          </div>
+          <div id="day-chart" style="position:relative;flex:1;min-height:0;">
+            <div class="loading" id="chart-loading"><span class="spinner"></span>Загрузка...</div>
+            <canvas id="month-chart-canvas" style="display:none;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Gridstack JS -->
+<script src="https://cdn.jsdelivr.net/npm/gridstack@10/dist/gridstack-all.js"></script>
+<script>
+const API = 'https://restu.planfix.ru/rest';
+const TOKEN = '206c56352e085b96e867faa1e01e3743';
+
+// ── График дежурств ──────────────────────────────────────────────────────────
+// role: 'тимлид' | '1лн' | 'подхват' | 'standard'
+const DUTY_SCHEDULE = [
+  // МАЙ 2026
+  { from:'2026-05-04', to:'2026-05-08', type:'week',
+    day:[
+      { name:'Илья Евглевский',     role:'standard' },
+      { name:'Дмитрий Сурков',      role:'1лн' },
+      { name:'Алексей Трусов',      role:'подхват' },
+    ],
+    evening:[
+      { name:'Данила Казаков',       role:'1лн' },
+      { name:'Федор Тугунов',        role:'подхват' },
+    ]},
+  { from:'2026-05-09', to:'2026-05-10', type:'weekend',
+    duty:[{ name:'Дмитрий Пушкин', role:'standard' }] },
+
+  { from:'2026-05-11', to:'2026-05-15', type:'week',
+    day:[
+      { name:'Владислав Сеньков',   role:'standard' },
+      { name:'Кирилл Артюшенко',    role:'1лн' },
+      { name:'Константин Русанов',  role:'подхват' },
+    ],
+    evening:[
+      { name:'Алексей Трусов',      role:'1лн' },
+      { name:'Федор Тугунов',       role:'подхват' },
+    ]},
+  { from:'2026-05-16', to:'2026-05-17', type:'weekend',
+    duty:[{ name:'Константин Лавлинских', role:'standard' }] },
+
+  { from:'2026-05-18', to:'2026-05-22', type:'week',
+    day:[
+      { name:'Дмитрий Пушкин',      role:'standard' },
+      { name:'Дмитрий Сурков',      role:'1лн' },
+      { name:'Данила Казаков',       role:'подхват' },
+    ],
+    evening:[
+      { name:'Кирилл Артюшенко',    role:'1лн' },
+      { name:'Федор Тугунов',        role:'подхват' },
+    ]},
+  { from:'2026-05-23', to:'2026-05-24', type:'weekend',
+    duty:[{ name:'Никита Штанько', role:'standard' }] },
+
+  { from:'2026-05-25', to:'2026-05-29', type:'week',
+    day:[
+      { name:'Алексей Трусов',      role:'standard' },
+      { name:'Илья Евглевский',     role:'1лн' },
+      { name:'Константин Русанов',  role:'подхват' },
+    ],
+    evening:[
+      { name:'Данила Казаков',       role:'1лн' },
+      { name:'Федор Тугунов',        role:'подхват' },
+    ]},
+  { from:'2026-05-30', to:'2026-05-31', type:'weekend',
+    duty:[{ name:'Владислав Сеньков', role:'standard' }] },
+
+  // ИЮНЬ 2026
+  { from:'2026-06-01', to:'2026-06-05', type:'week',
+    day:[
+      { name:'Константин Лавлинских', role:'тимлид' },
+      { name:'Дмитрий Пушкин',        role:'1лн' },
+      { name:'Константин Русанов',     role:'подхват' },
+    ],
+    evening:[
+      { name:'Илья Евглевский',       role:'1лн' },
+      { name:'Алексей Трусов',        role:'подхват' },
+    ]},
+  { from:'2026-06-06', to:'2026-06-07', type:'weekend',
+    duty:[{ name:'Никита Штанько', role:'standard' }] },
+
+  { from:'2026-06-08', to:'2026-06-12', type:'week',
+    day:[
+      { name:'Кирилл Артюшенко',     role:'тимлид' },
+      { name:'Дмитрий Сурков',       role:'1лн' },
+      { name:'Константин Лавлинских',role:'подхват' },
+    ],
+    evening:[
+      { name:'Данила Казаков',        role:'1лн' },
+      { name:'Дмитрий Пушкин',       role:'подхват' },
+    ]},
+  { from:'2026-06-13', to:'2026-06-14', type:'weekend',
+    duty:[{ name:'Алексей Трусов', role:'standard' }] },
+
+  { from:'2026-06-15', to:'2026-06-19', type:'week',
+    day:[
+      { name:'Дмитрий Сурков',       role:'тимлид' },
+      { name:'Кирилл Артюшенко',     role:'1лн' },
+      { name:'Никита Штанько',       role:'подхват' },
+    ],
+    evening:[
+      { name:'Владислав Сеньков',    role:'1лн' },
+      { name:'Федор Тугунов',        role:'подхват' },
+    ]},
+  { from:'2026-06-20', to:'2026-06-21', type:'weekend',
+    duty:[{ name:'Дмитрий Пушкин', role:'standard' }] },
+
+  { from:'2026-06-22', to:'2026-06-26', type:'week',
+    day:[
+      { name:'Алексей Трусов',       role:'тимлид' },
+      { name:'Илья Евглевский',      role:'1лн' },
+      { name:'Константин Русанов',   role:'подхват' },
+    ],
+    evening:[
+      { name:'Данила Казаков',        role:'1лн' },
+      { name:'Федор Тугунов',        role:'подхват' },
+    ]},
+  { from:'2026-06-27', to:'2026-06-28', type:'weekend',
+    duty:[{ name:'Владислав Сеньков', role:'standard' }] },
+];
+
+// Возвращает запись дежурства для даты (YYYY-MM-DD)
+function getDutyForDate(dateStr) {
+  return DUTY_SCHEDULE.find(e => e.from <= dateStr && dateStr <= e.to) || null;
+}
+
+// Шаблоны сервисных задач
+const SERVICE_TEMPLATES = [
+  24609,  // Service_support
+  28171,  // Внешняя-Маркетинговая акция
+];
+
+// Группы сотрудников, связанных с сервисной поддержкой
+const SERVICE_GROUP_IDS = new Set([185860, 185862, 185888]); // Service_Support, Project manager, Account_Manager
+
+// Белый список статусов Service_support — задачи с другими статусами исключаются
+const DRAFT_STATUS  = 0;             // Черновик (status.id = 0)
+const ACTIVE_IDS    = new Set([1, 2, 109, 114, 141, 186, 202]); // Новая, В работе, Запрос информации, Доработка, Перераспределение, Принят в работу, В ожидании
+const COMPLETED_IDS = new Set([3]);  // Завершенная
+const ON_HOLD_IDS   = new Set([4]);  // Отложенная
+// Все допустимые статусы
+const KNOWN_STATUS_IDS = new Set([...ACTIVE_IDS, ...COMPLETED_IDS, ...ON_HOLD_IDS]);
+
+const STATUS_COLORS = {
+  'Новая':               '#60a5fa',
+  'В работе':            '#34d399',
+  'Принят в работу':     '#a78bfa',
+  'Запрос информации':   '#fbbf24',
+  'Доработка':           '#fb923c',
+  'Перераспределение':   '#38bdf8',
+  'В ожидании':          '#818cf8',
+  'Отложенная':          '#64748b',
+  'Завершенная':         '#374151',
+};
+
+// ── Gridstack layout ─────────────────────────────────────────────────────────
+const LAYOUT_KEY = 'pf_layout_v11';
+let grid = null;
+let editMode = false;
+
+const DEFAULT_LAYOUT = [
+  { id: 'kpi-active',       x: 0, y: 0, w: 3, h: 3 },
+  { id: 'kpi-completed',    x: 6, y: 0, w: 3, h: 3 },
+  { id: 'kpi-rework',       x: 4, y: 3, w: 4, h: 3 },
+  { id: 'kpi-today',        x: 8, y: 3, w: 4, h: 3 },
+  { id: 'kpi-unassigned',   x: 0, y: 6, w: 4, h: 3 },
+  { id: 'kpi-avg-close',    x: 8, y: 6, w: 4, h: 3 },
+  { id: 'duty-panel',       x: 0, y: 9, w: 5, h: 9 },
+  { id: 'chart-panel',      x: 5, y: 9, w: 7, h: 9 },
+  { id: 'assignee-panel',   x: 0, y: 18, w: 12, h: 9 },
+  { id: 'clients-panel',   x: 0, y: 27, w: 12, h: 9 },
+];
+
+function saveLayout() {
+  if (!grid) return;
+  const items = grid.save(false); // false = don't include content HTML
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(items));
+  } catch(e) { /* ignore */ }
+}
+
+function loadLayout() {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function initGrid() {
+  const savedLayout = loadLayout();
+
+  grid = GridStack.init({
+    column: 12,
+    cellHeight: 60,
+    margin: 10,
+    animate: true,
+    disableDrag: true,
+    disableResize: true,
+    float: false,
+    auto: true,
+  }, '#main-grid');
+
+  // Restore saved layout if available
+  if (savedLayout) {
+    try {
+      // Map saved positions back to DOM items
+      savedLayout.forEach(item => {
+        const el = document.querySelector(`[gs-id="${item.id}"]`);
+        if (el) {
+          grid.update(el, { x: item.x, y: item.y, w: item.w, h: item.h });
+        }
+      });
+    } catch(e) { /* ignore layout restore errors */ }
+  }
+
+  // Save layout on any change
+  grid.on('change', () => {
+    if (editMode) saveLayout();
+  });
+
+  // Restore collapsed state
+  initCollapse();
+}
+
+// ── Collapse панелей ──────────────────────────────────────────────────────────
+const COLLAPSE_KEY = 'pf_collapsed_v1';
+
+function loadCollapseState() {
+  try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveCollapseState(state) {
+  localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state));
+}
+
+// Добавляет кнопку ▾ к каждой панели и восстанавливает свёрнутые
+function initCollapse() {
+  const panelIds = ['appeals-panel','duty-panel','chart-panel','assignee-panel','clients-panel'];
+  const state = loadCollapseState();
+
+  panelIds.forEach(id => {
+    const el = document.querySelector(`[gs-id="${id}"]`);
+    if (!el) return;
+    const h2 = el.querySelector('h2');
+    if (!h2) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'panel-collapse-btn';
+    btn.setAttribute('data-collapse-id', id);
+    btn.title = 'Свернуть / развернуть';
+    btn.textContent = state[id] !== undefined ? '▸' : '▾';
+    btn.onclick = () => togglePanelCollapse(id);
+    h2.appendChild(btn);
+
+    // Restore if was collapsed
+    if (state[id] !== undefined) {
+      el.classList.add('pf-collapsed');
+      grid.update(el, { h: 2, minH: 2 });
+    }
+  });
+}
+
+function togglePanelCollapse(panelId) {
+  const el = document.querySelector(`[gs-id="${panelId}"]`);
+  if (!el) return;
+  const btn = el.querySelector('[data-collapse-id]');
+  const state = loadCollapseState();
+
+  if (state[panelId] !== undefined) {
+    // Развернуть
+    const savedH = state[panelId];
+    el.classList.remove('pf-collapsed');
+    const gsMinH = parseInt(el.getAttribute('gs-min-h')) || 3;
+    grid.update(el, { h: savedH, minH: gsMinH });
+    delete state[panelId];
+    if (btn) btn.textContent = '▾';
+  } else {
+    // Свернуть — сохраняем текущую высоту
+    const currentH = parseInt(el.getAttribute('gs-h')) || 9;
+    state[panelId] = currentH;
+    el.classList.add('pf-collapsed');
+    grid.update(el, { h: 2, minH: 2 });
+    if (btn) btn.textContent = '▸';
+  }
+
+  saveCollapseState(state);
+  // Чтобы сохранился и основной макет
+  saveLayout();
+}
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-layout-btn');
+  const gridEl = document.getElementById('main-grid');
+
+  if (editMode) {
+    btn.textContent = 'Сохранить макет';
+    btn.classList.add('active');
+    gridEl.classList.add('edit-mode');
+    grid.enableMove(true);
+    grid.enableResize(true);
+  } else {
+    btn.textContent = 'Редактировать макет';
+    btn.classList.remove('active');
+    gridEl.classList.remove('edit-mode');
+    grid.enableMove(false);
+    grid.enableResize(false);
+    saveLayout();
+  }
+}
+
+async function pf(endpoint, body) {
+  const res = await fetch(`${API}${endpoint}`, {
+    method: body !== undefined ? 'POST' : 'GET',
+    headers: {
+      'Authorization': `Bearer ${TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  return res.json();
+}
+
+// ── Кэш ──────────────────────────────────────────────────────────────────────
+const CACHE_KEY = 'pf_dash_v16';
+const CACHE_TTL = 30 * 60 * 1000; // 30 минут
+
+function cacheLoad() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { ts, payload } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return { payload, ageMs: Date.now() - ts };
+  } catch { return null; }
+}
+
+function cacheSave(payload) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), payload }));
+  } catch { /* localStorage переполнен — игнорируем */ }
+}
+
+function cacheClear() {
+  localStorage.removeItem(CACHE_KEY);
+}
+
+// Форматирует Date в строку для PlanFix API: DD-MM-YYYY
+function pfDate(d) {
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+}
+
+// Загружает все ОТКРЫТЫЕ задачи по сервисным шаблонам (статус ≠ Завершённая)
+// type 51 = шаблон (OR-логика), type 10 = статус (notequal = исключаем Завершённую, id=3)
+async function fetchOpenTasks() {
+  const tasks = [];
+  let offset = 0;
+  while (true) {
+    const data = await pf('/task/list', {
+      offset, pageSize: 100,
+      fields: 'id,name,status,assignees,dateTime,counterparty,priority,113716,114030,114032,114046',
+      filters: [
+        { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+        { type: 10, operator: 'notequal', value: 3 },
+      ]
+    });
+    if (!data.tasks || data.tasks.length === 0) break;
+    tasks.push(...data.tasks);
+    if (data.tasks.length < 100) break;
+    offset += 100;
+  }
+  return tasks;
+}
+
+// Завершённые задачи за текущий месяц — с учётом переоткрытых
+// Используем дедупликацию по ID из двух запросов:
+// 1) status=3 + type19=этот месяц (стандарт)
+// 2) status=Доработка + type19=этот месяц (закрытые в этом месяце, потом переоткрытые но ещё не перезакрытые)
+// Задачи из сценария "Завершённая→Доработка→Завершённая" ловятся через type 3 в fetchTodayStats
+async function fetchAllCompletedCount() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const dateRange = { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) };
+  const tpl = { type: 51, operator: 'equal', value: SERVICE_TEMPLATES };
+  const dateFilter = { type: 19, operator: 'equal', value: dateRange };
+
+  // Только статус «Завершённая» — переоткрытые задачи не считаются закрытыми
+  const filtersCompleted = [tpl, { type: 10, operator: 'equal', value: [...COMPLETED_IDS] }, dateFilter];
+
+  const getPage = (o, f) => pf('/task/list', { offset: o, pageSize: 100, fields: 'id', filters: f });
+
+  const ids = new Set();
+  const first = await getPage(0, filtersCompleted);
+  for (const t of (first.tasks || [])) ids.add(t.id);
+  if ((first.tasks || []).length === 100) {
+    let offset = 100;
+    while (true) {
+      const batch = await Promise.all([0,1,2,3,4].map(i => getPage(offset + i * 100, filtersCompleted)));
+      let done = false;
+      for (const data of batch) {
+        for (const t of (data.tasks || [])) ids.add(t.id);
+        if ((data.tasks || []).length < 100) done = true;
+      }
+      if (done) break;
+      offset += 500;
+    }
+  }
+
+  return ids.size;
+}
+
+// График: созданные и решённые задачи по дням текущего месяца
+// Один запрос на день × 2 типа — всё параллельно
+async function fetchMonthChartData() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  const days = Array.from({length: today}, (_, i) => {
+    const d = new Date(year, month, i + 1);
+    return { key: fmtD(d), pfStr: pfDate(d) };
+  });
+
+  const tplFilter = { type: 51, operator: 'equal', value: SERVICE_TEMPLATES };
+  const createdByDay = {}, resolvedByDay = {};
+
+  // Батчи по 8 дней (16 запросов параллельно) — избегаем rate limit
+  const BATCH = 8;
+  for (let i = 0; i < days.length; i += BATCH) {
+    const slice = days.slice(i, i + BATCH);
+    const batchResults = await Promise.all(slice.map(({ key, pfStr }) => {
+      const dateFilter = { dateType: 'otherDate', dateValue: pfStr };
+      return Promise.all([
+        pf('/task/list', { offset: 0, pageSize: 100, fields: 'id', filters: [
+          tplFilter,
+          { type: 12, operator: 'equal', value: dateFilter },
+        ]}).then(d => ({ key, count: (d.tasks || []).length }))
+          .catch(() => ({ key, count: 0 })),
+        pf('/task/list', { offset: 0, pageSize: 100, fields: 'id', filters: [
+          tplFilter,
+          { type: 10, operator: 'equal', value: [...COMPLETED_IDS] },
+          { type: 19, operator: 'equal', value: dateFilter },
+        ]}).then(d => ({ key, count: (d.tasks || []).length }))
+          .catch(() => ({ key, count: 0 })),
+      ]);
+    }));
+    for (const [c, r] of batchResults) {
+      createdByDay[c.key] = c.count;
+      resolvedByDay[r.key] = r.count;
+    }
+  }
+
+  return { createdByDay, resolvedByDay };
+}
+
+// Рабочие дни в месяце с 1-го по указанный день включительно
+function workingDaysInMonth(year, month, upToDay) {
+  let count = 0;
+  for (let d = 1; d <= upToDay; d++) {
+    const dow = new Date(year, month, d).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return Math.max(count, 1);
+}
+
+// Завершённые задачи текущего месяца с исполнителями — для метрики "закрывает/день"
+// Дедупликация по ID: status=3 + status=Доработка (переоткрытые) — оба с type19=этот месяц
+async function fetchMonthCompletedByAssignee() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const dateRange = { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) };
+  const tpl = { type: 51, operator: 'equal', value: SERVICE_TEMPLATES };
+  const dateFilter = { type: 19, operator: 'equal', value: dateRange };
+
+  const fetchWithStatus = async (statusVal) => {
+    const result = [];
+    let offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id,assignees,113716',
+        filters: [tpl, { type: 10, operator: 'equal', value: statusVal }, dateFilter]
+      });
+      if (!data.tasks || data.tasks.length === 0) break;
+      result.push(...data.tasks);
+      if (data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return result;
+  };
+
+  // Запрос 1: Завершённые; Запрос 2: Доработка (закрытые этот месяц, потом переоткрытые)
+  const [completedTasks, reworkTasks] = await Promise.all([
+    fetchWithStatus([...COMPLETED_IDS]),
+    Promise.resolve([]), // переоткрытые не считаются закрытыми за месяц
+  ]);
+
+  // Дедупликация по ID
+  const seenIds = new Set();
+  const tasks = [];
+  for (const t of [...completedTasks, ...reworkTasks]) {
+    if (!seenIds.has(t.id)) { seenIds.add(t.id); tasks.push(t); }
+  }
+  // { name: { count, weightSum, weightCount } }
+  const byName = {};
+  const taskIdToAssignee = {}; // taskId → первый исполнитель (для worktime)
+  for (const t of tasks) {
+    const weightVal = (t.customFieldData || [])
+      .find(cf => cf.field?.id === 113716);
+    const w = weightVal ? parseFloat(weightVal.stringValue) : NaN;
+    const weight = (!isNaN(w) && w >= 1 && w <= 4) ? w : null;
+    const users = (t.assignees?.users || []).filter(u => u.name);
+    if (users.length === 0) {
+      const key = '— Без исполнителя';
+      taskIdToAssignee[t.id] = key;
+      if (!byName[key]) byName[key] = { count: 0, weightSum: 0, weightCount: 0, weightDist: {1:0,2:0,3:0,4:0}, noAssignee: true };
+      byName[key].count++;
+      if (weight !== null) {
+        byName[key].weightSum += weight;
+        byName[key].weightCount++;
+        byName[key].weightDist[weight] = (byName[key].weightDist[weight] || 0) + 1;
+      }
+    } else {
+      taskIdToAssignee[t.id] = users[0].name; // первый исполнитель
+      for (const u of users) {
+        if (!byName[u.name]) byName[u.name] = { count: 0, weightSum: 0, weightCount: 0, weightDist: {1:0,2:0,3:0,4:0} };
+        byName[u.name].count++;
+        if (weight !== null) {
+          byName[u.name].weightSum += weight;
+          byName[u.name].weightCount++;
+          byName[u.name].weightDist[weight] = (byName[u.name].weightDist[weight] || 0) + 1;
+        }
+      }
+    }
+  }
+  // Дополняем маппинг имён→ID из закрытых задач
+  buildUserIdMapFromTasks(tasks);
+
+  return { byName, taskIdToAssignee };
+}
+
+// Закрытые задачи сегодня — разбивка по исполнителям
+// Два запроса: status=3 + status=114(Доработка переоткрытые), дедупликация по ID
+async function fetchTodayClosedByExecutor() {
+  const todayStr = pfDate(new Date());
+  const todayFilter = { type: 19, operator: 'equal', value: { dateType: 'otherDate', dateValue: todayStr } };
+  const fetchByStatus = async (statusVal) => {
+    const result = [];
+    let offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id,assignees',
+        filters: [
+          { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+          { type: 10, operator: 'equal', value: statusVal },
+          todayFilter,
+        ]
+      });
+      if (!data.tasks?.length) break;
+      result.push(...data.tasks);
+      if (data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return result;
+  };
+  const [completed, rework] = await Promise.all([
+    fetchByStatus([...COMPLETED_IDS]),
+    fetchByStatus([...ACTIVE_IDS, ...ON_HOLD_IDS]),
+  ]);
+  // Дедупликация по ID
+  const seenIds = new Set();
+  const tasks = [];
+  for (const t of [...completed, ...rework]) {
+    if (!seenIds.has(t.id)) { seenIds.add(t.id); tasks.push(t); }
+  }
+  const byName = {};
+  for (const t of tasks) {
+    for (const u of (t.assignees?.users || [])) {
+      if (u.name) byName[u.name] = (byName[u.name] || 0) + 1;
+    }
+  }
+  return byName;
+}
+
+// Черновики по постановщику — status=0, группировка по assigner.name
+async function fetchDraftsByAssigner() {
+  const tasks = [];
+  let offset = 0;
+  while (true) {
+    const data = await pf('/task/list', {
+      offset, pageSize: 100, fields: 'id,assigner',
+      filters: [
+        { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+        { type: 10, operator: 'equal', value: [DRAFT_STATUS] },
+      ]
+    });
+    if (!data.tasks?.length) break;
+    tasks.push(...data.tasks);
+    if (data.tasks.length < 100) break;
+    offset += 100;
+  }
+  const byName = {};
+  for (const t of tasks) {
+    const name = t.assigner?.name;
+    if (name) byName[name] = (byName[name] || 0) + 1;
+  }
+  return byName;
+}
+
+// Среднее время закрытия: только задачи СОЗДАННЫЕ и ЗАКРЫТЫЕ в текущем месяце
+// Иначе задача создана в марте, закрыта 1 июня → elapsed = 60+ дней (искажение)
+async function fetchAvgCloseTime() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const dateRange = { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) };
+  const filters = [
+    { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+    { type: 10, operator: 'equal', value: [...COMPLETED_IDS] },
+    { type: 19, operator: 'equal', value: dateRange }, // закрыта в этом месяце
+    { type: 12, operator: 'equal', value: dateRange }, // создана в этом месяце
+  ];
+  const getPage = o => pf('/task/list', { offset: o, pageSize: 100, fields: 'id,dateTime', filters });
+
+  const first = await getPage(0);
+  const tasks = [...(first.tasks || [])];
+  if (tasks.length === 100) {
+    let offset = 100;
+    while (true) {
+      const batch = await Promise.all([0,1,2,3,4].map(i => getPage(offset + i * 100)));
+      let done = false;
+      for (const d of batch) {
+        tasks.push(...(d.tasks || []));
+        if ((d.tasks || []).length < 100) done = true;
+      }
+      if (done) break;
+      offset += 500;
+    }
+  }
+
+  const durations = [];
+  for (const t of tasks) {
+    const createdTs = t.dateTime?.dateTimeUtcSeconds;
+    if (!createdTs) continue;
+    // dateTimeUtcSeconds может быть ISO строкой или числом
+    const created = typeof createdTs === 'number'
+      ? new Date(createdTs * 1000)
+      : new Date(createdTs);
+    if (isNaN(created.getTime())) continue;
+    const days = workingDaysElapsed(created, now);
+    if (days >= 0) durations.push(days);
+  }
+
+  if (!durations.length) return null;
+  return (durations.reduce((a, b) => a + b, 0) / durations.length).toFixed(1);
+}
+
+// Задачи созданные в этом месяце с исполнителями (любой статус) — для метрики "получает/день"
+async function fetchMonthCreatedByAssignee() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const tasks = [];
+  let offset = 0;
+  while (true) {
+    const data = await pf('/task/list', {
+      offset, pageSize: 100, fields: 'id,assignees,113716',
+      filters: [
+        { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+        { type: 12, operator: 'equal', value: { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) } },
+      ]
+    });
+    if (!data.tasks || data.tasks.length === 0) break;
+    tasks.push(...data.tasks);
+    if (data.tasks.length < 100) break;
+    offset += 100;
+  }
+  const byName = {};
+  for (const t of tasks) {
+    const weightVal = (t.customFieldData || [])
+      .find(cf => cf.field?.id === 113716);
+    const w = weightVal ? parseFloat(weightVal.stringValue) : NaN;
+    const weight = (!isNaN(w) && w >= 1 && w <= 4) ? w : null;
+    for (const u of (t.assignees?.users || [])) {
+      if (!u.name) continue;
+      if (!byName[u.name]) byName[u.name] = { count: 0, weightSum: 0, weightCount: 0, weightDist: {1:0,2:0,3:0,4:0} };
+      byName[u.name].count++;
+      if (weight !== null) {
+        byName[u.name].weightSum += weight;
+        byName[u.name].weightCount++;
+        byName[u.name].weightDist[weight] = (byName[u.name].weightDist[weight] || 0) + 1;
+      }
+    }
+  }
+  return byName;
+}
+
+// Рендер таблицы нагрузки по сотрудникам
+function renderAssigneeTable(openTasks, serviceUsers, closedByName = {}, createdByName = {}, todayClosedByName = {}, draftsByName = null) {
+  _lastAssigneeArgs = [openTasks, serviceUsers, closedByName, createdByName, todayClosedByName, draftsByName];
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const workDays = workingDaysInMonth(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Открытые задачи по исполнителям (все месяцы, с весами)
+  const openByName = {};
+  const backlogByName = {};
+  for (const t of openTasks) {
+    const c = getCreated(t);
+    const weightVal = (t.customFieldData || []).find(cf => cf.field?.id === 113716);
+    const w = weightVal ? parseFloat(weightVal.stringValue) : NaN;
+    const weight = (!isNaN(w) && w >= 1 && w <= 4) ? w : null;
+    for (const u of (t.assignees?.users || [])) {
+      if (!u.name) continue;
+      if (!openByName[u.name]) openByName[u.name] = { count: 0, weightSum: 0, weightCount: 0, weightDist: {1:0,2:0,3:0,4:0} };
+      openByName[u.name].count++;
+      if (weight !== null) {
+        openByName[u.name].weightSum += weight;
+        openByName[u.name].weightCount++;
+        openByName[u.name].weightDist[weight] = (openByName[u.name].weightDist[weight] || 0) + 1;
+      }
+      // Бэклог: задачи из прошлых месяцев
+      if (c && c < monthStart) {
+        backlogByName[u.name] = (backlogByName[u.name] || 0) + 1;
+      }
+    }
+  }
+
+  // Объединяем всех сотрудников из всех источников
+  const names = new Set([...Object.keys(openByName), ...Object.keys(closedByName)]);
+
+  const rows = [...names].map(name => {
+    const op = openByName[name]   || {};
+    const cl = closedByName[name] || {};
+    const opCount = (typeof op === 'object' ? op.count : op) || 0;
+    const clCount = (typeof cl === 'object' ? cl.count : cl) || 0;
+    const inCount = opCount; // текущий снимок: сколько задач открыто прямо сейчас
+    const wSumIn  = (typeof op === 'object' ? op.weightSum   : 0) || 0;
+    const wCntIn  = (typeof op === 'object' ? op.weightCount : 0) || 0;
+    const wSumCl  = (typeof cl === 'object' ? cl.weightSum   : 0) || 0;
+    const wCntCl  = (typeof cl === 'object' ? cl.weightCount : 0) || 0;
+    const distIn  = (typeof op === 'object' ? op.weightDist : null) || {1:0,2:0,3:0,4:0};
+    const distCl  = (typeof cl === 'object' ? cl.weightDist : null) || {1:0,2:0,3:0,4:0};
+    const weightDist = {
+      1: (distIn[1]||0) + (distCl[1]||0),
+      2: (distIn[2]||0) + (distCl[2]||0),
+      3: (distIn[3]||0) + (distCl[3]||0),
+      4: (distIn[4]||0) + (distCl[4]||0),
+    };
+    return {
+      name,
+      incoming:   inCount,
+      closed:     clCount,
+      backlog:    backlogByName[name] || 0,
+      weightedIn: wSumCl,
+      weightDist,
+      hasWeightData: (wCntIn + wCntCl) > 0,
+      daysElapsed: Math.max(1, now.getDate()),
+      todayClosed:  todayClosedByName !== null ? (todayClosedByName[name] || 0) : 0,
+      todayLoading: todayClosedByName === null,
+      drafts:       draftsByName !== null ? (draftsByName[name] || 0) : 0,
+      draftsLoading: draftsByName === null,
+    };
+  }).sort((a, b) => {
+    const dir = _assigneeSortDir === 'asc' ? 1 : -1;
+    switch (_assigneeSortCol) {
+      case 'name':     return dir * a.name.localeCompare(b.name, 'ru');
+      case 'closed':   return dir * (a.closed   - b.closed);
+      case 'backlog':  return dir * (a.backlog   - b.backlog);
+      case 'daily':    return dir * (a.closed / a.daysElapsed - b.closed / b.daysElapsed);
+      case 'weighted': return dir * (a.weightedIn - b.weightedIn);
+      case 'today':    return dir * (a.todayClosed - b.todayClosed);
+      case 'drafts':   return dir * (a.drafts - b.drafts);
+      default:         return dir * (a.incoming  - b.incoming);
+    }
+  });
+
+  if (!rows.length) {
+    setEl('assignee-area', '<div class="loading">Нет данных за этот месяц</div>');
+    return;
+  }
+
+  const maxIn = Math.max(...rows.map(r => r.incoming), 1);
+  const maxCl = Math.max(...rows.map(r => r.closed), 1);
+
+  const pctIn = (v) => Math.round(v / maxIn * 100);
+  const pctCl = (v) => Math.round(v / maxCl * 100);
+
+  setEl('assignee-area', `
+    <table class="assignee-table">
+      <thead><tr>
+        <th style="width:160px;cursor:pointer;user-select:none;" onclick="assigneeSortBy('name')">
+          Сотрудник ${ _assigneeSortCol==='name' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+        </th>
+        <th style="color:#C4604A;cursor:pointer;user-select:none;" onclick="assigneeSortBy('incoming')">
+          <span class="th-hint">
+            📂 Открытых сейчас ${ _assigneeSortCol==='incoming' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup left" style="width:270px;">
+              <b style="color:#e2e8f0;">📂 Открытых задач сейчас</b><br><br>
+              Снимок на текущий момент: все задачи со статусом <b style="color:#e2e8f0;">не «Завершена»</b>, где сотрудник стоит исполнителем.<br><br>
+              Включает задачи из <b style="color:#e2e8f0;">любого месяца</b> — если задача до сих пор открыта, она здесь.<br><br>
+              <b style="color:#C4604A;">Источник:</b> те же данные что KPI «Открытых», без доп. запросов к API.<br><br>
+              <span style="color:#475569;">Не привязано к текущему месяцу — это живая очередь инженера.</span>
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">текущая очередь (все месяцы)</div>
+        </th>
+        <th style="color:#5ABEAA;cursor:pointer;user-select:none;" onclick="assigneeSortBy('closed')">
+          <span class="th-hint">
+            ✓ Закрыто ${ _assigneeSortCol==='closed' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:270px;">
+              <b style="color:#e2e8f0;">✓ Закрыто за месяц</b><br><br>
+              Задачи со статусом <b style="color:#e2e8f0;">«Завершена»</b>, у которых дата фактического закрытия попадает в текущий месяц — <b style="color:#e2e8f0;">независимо от даты создания</b>.<br><br>
+              <b style="color:#5ABEAA;">Источник:</b> фильтр по дате закрытия (тип 20) + статус «Завершена» (id 3).<br><br>
+              📈 <b>Закрыто &gt; Открытых</b> — инженер активно разгребает накопленное<br>
+              📉 <b>Закрыто &lt; Открытых</b> — задач больше, чем успевает закрыть
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">закрыто за месяц</div>
+        </th>
+        <th style="color:#94a3b8;cursor:pointer;user-select:none;" onclick="assigneeSortBy('backlog')">
+          <span class="th-hint">
+            ⏳ Бэклог ${ _assigneeSortCol==='backlog' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:270px;">
+              <b style="color:#e2e8f0;">⏳ Бэклог из прошлых месяцев</b><br><br>
+              Открытые задачи, дата создания которых — <b style="color:#e2e8f0;">до 1-го числа текущего месяца</b>, и сотрудник стоит исполнителем.<br><br>
+              <b style="color:#94a3b8;">Источник:</b> из уже загруженных открытых задач, без доп. запросов к API.<br><br>
+              Это «хвост» — задачи, которые не закрылись в прошлых месяцах и тянутся до сих пор.<br><br>
+              ⚠️ <b style="color:#fbbf24;">Высокий бэклог</b> при низком «Закрыто» = системная перегрузка сотрудника
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">открытые из прошлых мес.</div>
+        </th>
+        <th style="color:#7DD3FC;cursor:pointer;user-select:none;" onclick="assigneeSortBy('daily')">
+          <span class="th-hint">
+            ⚡ В среднем/день ${ _assigneeSortCol==='daily' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:260px;">
+              <b style="color:#e2e8f0;">⚡ Среднее задач в день</b><br><br>
+              Формула: <b style="color:#7DD3FC;">закрыто за месяц ÷ дней прошло</b><br><br>
+              Считаются задачи, закрытые в текущем месяце, где сотрудник — исполнитель. Делится на количество дней, прошедших с 1-го числа.<br><br>
+              <b style="color:#94a3b8;">Пример:</b> закрыл 30 задач за 15 дней = <b>2.0 / день</b><br><br>
+              <span style="color:#475569;">Позволяет сравнивать темп работы независимо от того, сколько дней прошло в месяце.</span>
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">закрыто ÷ дней прошло</div>
+        </th>
+        <th style="color:#E8C87A;cursor:pointer;user-select:none;" onclick="assigneeSortBy('weighted')">
+          <span class="th-hint">
+            ⚖️ Взв. нагрузка ${ _assigneeSortCol==='weighted' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:270px;">
+              <b style="color:#e2e8f0;">⚖️ Взвешенная нагрузка</b><br><br>
+              Формула: <b style="color:#E8C87A;">∑ (грейд закрытой задачи)</b> за текущий месяц.<br><br>
+              Считаются только <b style="color:#e2e8f0;">закрытые</b> задачи — это мера фактически выполненной работы, а не потенциальной.<br><br>
+              <b style="color:#94a3b8;">Источник:</b> поле «Вес задачи» (1–4) из PlanFix, кастомное поле #113716.<br><br>
+              Задачи без заполненного веса <b style="color:#e2e8f0;">не учитываются</b>.<br><br>
+              <b style="color:#E8C87A;">Пример:</b><br>
+              Закрыл 10 задач по весу 1 + 5 задач по весу 3 = <b>25 очков</b><br><br>
+              Позволяет честно сравнивать вклад инженеров с учётом <b style="color:#e2e8f0;">сложности задач</b>.
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">сумма (задачи × вес)</div>
+        </th>
+        <th style="color:#A78BFA;cursor:pointer;user-select:none;" onclick="assigneeSortBy('today')">
+          <span class="th-hint">
+            📅 Сегодня ${ _assigneeSortCol==='today' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:270px;">
+              <b style="color:#e2e8f0;">📅 Закрыто сегодня</b><br><br>
+              Задачи со статусом <b style="color:#e2e8f0;">«Завершена»</b>, у которых дата перевода в статус Завершённая (тип 20) = <b style="color:#e2e8f0;">сегодня</b>, и сотрудник стоит исполнителем.<br><br>
+              <b style="color:#A78BFA;">Источник:</b> фильтр тип 51 (шаблон) + тип 10=3 (Завершена) + тип 20 (дата перевода в статус) = сегодня.<br><br>
+              <span style="color:#475569;">Позволяет видеть дневную активность каждого инженера.</span>
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">закрыто за сегодня</div>
+        </th>
+        <th style="color:#F472B6;cursor:pointer;user-select:none;" onclick="assigneeSortBy('drafts')">
+          <span class="th-hint">
+            ✏️ Черновик ${ _assigneeSortCol==='drafts' ? (_assigneeSortDir==='desc'?'▼':'▲') : '<span style="color:#2d3148">▼</span>' }
+            <span class="th-hint-icon">?</span>
+            <div class="th-hint-popup" style="width:260px;">
+              <b style="color:#e2e8f0;">✏️ Черновики</b><br><br>
+              Задачи со статусом <b style="color:#e2e8f0;">«Черновик» (status id = 0)</b>, где сотрудник — <b style="color:#e2e8f0;">Постановщик</b> (поле assigner).<br><br>
+              <b style="color:#F472B6;">Источник:</b> фильтр тип 51 (шаблон) + тип 10 = 0 (Черновик).<br><br>
+              <span style="color:#475569;">Задачи созданы, но ещё не запущены в работу.</span>
+            </div>
+          </span>
+          <div style="font-size:10px;font-weight:400;color:#64748b;margin-top:2px;">постановщик, не запущено</div>
+        </th>
+      </tr></thead>
+      <tbody>${(() => {
+        const maxBacklog  = Math.max(...rows.map(x => x.backlog), 1);
+        const maxWeighted = Math.max(...rows.map(x => x.weightedIn || 0), 1);
+        const maxDaily    = Math.max(...rows.map(x => x.closed / x.daysElapsed), 0.01);
+        const maxToday    = Math.max(...rows.map(x => x.todayClosed || 0), 1);
+
+        const renderRow = (r) => {
+          const pctBl = Math.round((r.backlog || 0) / maxBacklog * 100);
+          const pctWt = Math.round((r.weightedIn || 0) / maxWeighted * 100);
+          const dist = r.weightDist;
+          const totalWithWeight = Object.values(dist).reduce((a,b)=>a+b,0);
+          const maxDistVal = Math.max(...Object.values(dist), 1);
+          const WCOL = {1:'#4ade80',2:'#fbbf24',3:'#f97316',4:'#f87171'};
+          const WLBL = {1:'Простые',2:'Средние',3:'Сложные',4:'Критичные'};
+          const distRows = r.hasWeightData ? [1,2,3,4].map(w => {
+            const cnt = dist[w] || 0;
+            const pct = Math.round(cnt / maxDistVal * 100);
+            const share = totalWithWeight > 0 ? Math.round(cnt/totalWithWeight*100) : 0;
+            return `<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">
+              <span style="width:14px;height:14px;border-radius:3px;background:${WCOL[w]};opacity:0.85;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#000;">${w}</span>
+              <span style="width:58px;font-size:10px;color:#94a3b8;">${WLBL[w]}</span>
+              <div style="flex:1;height:7px;background:#1a2e20;border-radius:3px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${WCOL[w]};border-radius:3px;"></div>
+              </div>
+              <span style="width:22px;text-align:right;font-size:10px;color:${WCOL[w]};font-weight:600;">${cnt}</span>
+              <span style="width:28px;text-align:right;font-size:9px;color:#64748b;">${share}%</span>
+            </div>`;
+          }).join('') : '<div style="font-size:10px;color:#475569;">Нет данных о весе</div>';
+          const nameTooltip = `<div class="td-name-popup">
+            <div style="color:#e2e8f0;font-weight:600;margin-bottom:8px;font-size:12px;">${esc(r.name)}</div>
+            <div style="color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Распределение по весу задач</div>
+            ${distRows}
+            ${r.hasWeightData ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #2d3148;font-size:10px;color:#475569;">${totalWithWeight} из ${r.incoming + r.closed} задач с весом (<span style="color:#C4604A;">${r.incoming} откр.</span> + <span style="color:#5ABEAA;">${r.closed} закр.</span>)</div>` : ''}
+          </div>`;
+          const isNoAssignee = r.name === '— Без исполнителя';
+          const daily = r.closed / r.daysElapsed;
+          const pctD  = Math.round(daily / maxDaily * 100);
+          const pctTd = Math.round((r.todayClosed || 0) / maxToday * 100);
+          return `<tr style="${isNoAssignee ? 'opacity:0.6;border-top:1px dashed #2d3148;' : ''}">
+            <td style="font-weight:500;${isNoAssignee ? 'color:#64748b;font-style:italic;' : ''}">
+              ${isNoAssignee ? `<span style="font-size:12px;">🚫 Без исполнителя</span>` : `<span class="td-name-wrap">${esc(r.name)}${nameTooltip}</span>`}
+            </td>
+            <td><div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${pctIn(r.incoming)}%;background:#C4604A99;"></div></div><span class="tp-val" style="color:#C4604A;">${r.incoming}</span></div></td>
+            <td><div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${pctCl(r.closed)}%;background:#5ABEAA99;"></div></div><span class="tp-val" style="color:#5ABEAA;">${r.closed}</span></div></td>
+            <td><div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${Math.round((r.backlog||0)/maxBacklog*100)}%;background:#64748b88;"></div></div><span class="tp-val" style="color:#94a3b8;">${r.backlog}</span></div></td>
+            <td><div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${pctD}%;background:#7DD3FC66;"></div></div><span class="tp-val" style="color:#7DD3FC;">${daily>=10?Math.round(daily):daily.toFixed(1)}</span></div></td>
+            <td><div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${pctWt}%;background:#E8C87A88;"></div></div><span class="tp-val" style="color:#E8C87A;">${r.weightedIn||0}</span></div></td>
+            <td>${r.todayLoading
+              ? `<span class="spinner" style="width:9px;height:9px;border-width:1.5px;display:inline-block;vertical-align:middle;opacity:0.4;"></span>`
+              : `<div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${pctTd}%;background:#A78BFA88;"></div></div><span class="tp-val" style="color:${r.todayClosed?'#A78BFA':'#3d4a5c'};">${r.todayClosed}</span></div>`}
+            </td>
+            <td>${r.draftsLoading
+              ? `<span class="spinner" style="width:9px;height:9px;border-width:1.5px;display:inline-block;vertical-align:middle;opacity:0.4;"></span>`
+              : `<div class="tp-line"><div class="tp-bar-bg"><div class="tp-bar-fill" style="width:${Math.round((r.drafts||0)/Math.max(...rows.map(x=>x.drafts||0),1)*100)}%;background:#F472B688;"></div></div><span class="tp-val" style="color:${r.drafts?'#F472B6':'#3d4a5c'};">${r.drafts}</span></div>`}
+            </td>
+          </tr>`;
+        };
+
+        // Разбивка на группы: Service_Support и остальные
+        const isServiceMember = (name) => {
+          const uid = _serviceUserIdByName[name];
+          return uid ? serviceUsers.has(uid) : false;
+        };
+        const serviceRows = rows.filter(r => r.name !== '— Без исполнителя' && isServiceMember(r.name));
+        const otherRows   = rows.filter(r => r.name === '— Без исполнителя' || !isServiceMember(r.name));
+
+        const renderGroupHeader = (key, label, count) => {
+          const collapsed = _assigneeGroupCollapsed[key];
+          return `<tr class="ag-group-header" onclick="toggleAssigneeGroup('${key}')">
+            <td colspan="8">
+              <span class="ag-group-toggle">${collapsed ? '▶' : '▼'}</span>
+              ${label}
+              <span class="ag-group-count">${count} чел.</span>
+            </td>
+          </tr>`;
+        };
+
+        const sHTML = serviceRows.length
+          ? renderGroupHeader('service', '👥 Команда Service Support', serviceRows.length)
+            + (_assigneeGroupCollapsed.service ? '' : serviceRows.map(renderRow).join(''))
+          : '';
+        const oHTML = otherRows.length
+          ? renderGroupHeader('other', '🔗 Прочие', otherRows.length)
+            + (_assigneeGroupCollapsed.other ? '' : otherRows.map(renderRow).join(''))
+          : '';
+
+        return sHTML + oHTML;
+      })()}</tbody>
+    </table>`);
+}
+
+async function fetchTodayStats() {
+  const todayStr = pfDate(new Date());
+  const tplFilter = { type: 51, operator: 'equal', value: SERVICE_TEMPLATES };
+
+  // Created today: type 12 (creation date) = today
+  let created = 0, offset = 0;
+  while (true) {
+    const d = await pf('/task/list', { offset, pageSize: 100, fields: 'id',
+      filters: [tplFilter, { type: 12, operator: 'equal', value: { dateType: 'otherDate', dateValue: todayStr } }]
+    });
+    created += (d.tasks || []).length;
+    if (!d.tasks || d.tasks.length < 100) break;
+    offset += 100;
+  }
+
+  // Resolved today: статус=3 + type:19=сегодня (основной) +
+  // статус=114 Доработка + type:19=сегодня (переоткрытые после закрытия сегодня)
+  // Дедупликация по ID — совпадает с PlanFix UI "Дата перевода в статус Завершённая"
+  const todayDateFilter = { type: 19, operator: 'equal', value: { dateType: 'otherDate', dateValue: todayStr } };
+  const fetchResolvedByStatus = async (statusVal) => {
+    const ids = new Set();
+    let off = 0;
+    while (true) {
+      const d = await pf('/task/list', { offset: off, pageSize: 100, fields: 'id',
+        filters: [tplFilter, { type: 10, operator: 'equal', value: statusVal }, todayDateFilter]
+      });
+      for (const t of (d.tasks || [])) ids.add(t.id);
+      if (!d.tasks || d.tasks.length < 100) break;
+      off += 100;
+    }
+    return ids;
+  };
+  const [resolvedIds, reworkIds] = await Promise.all([
+    fetchResolvedByStatus([3]),
+    fetchResolvedByStatus([...ACTIVE_IDS, ...ON_HOLD_IDS]),
+  ]);
+  const allResolvedIds = new Set([...resolvedIds, ...reworkIds]);
+  const resolved = allResolvedIds.size;
+
+  return { created, resolved };
+}
+
+function addWorkingDays(date, days) {
+  const d = new Date(date);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) added++;
+  }
+  return d;
+}
+
+// Считает рабочие дни (пн–пт) между двумя датами, не включая выходные
+function workingDaysElapsed(start, end) {
+  const s = new Date(start); s.setHours(0, 0, 0, 0);
+  const e = new Date(end);   e.setHours(0, 0, 0, 0);
+  let count = 0;
+  const d = new Date(s);
+  while (d < e) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
+function getCreated(task) {
+  if (!task.dateTime?.dateTimeUtcSeconds) return null;
+  return new Date(task.dateTime.dateTimeUtcSeconds);
+}
+
+function classify(task) {
+  const id = task.status?.id;
+  if (COMPLETED_IDS.has(id)) return 'completed';
+  if (ON_HOLD_IDS.has(id)) return 'on_hold';
+  // Все прочие статусы открытой задачи = active (API уже отфильтровал Завершённые)
+  return 'active';
+}
+
+// Загружаем сотрудников сервисных групп → возвращаем Set числовых ID
+// Попутно заполняем _serviceUserNames и _serviceUserIdByName
+let _serviceUserNames = new Set();
+let _serviceUserIdByName = {}; // "Иван Иванов" → numeric id
+
+async function fetchServiceUsers() {
+  const serviceUserIds = new Set();
+  _serviceUserNames = new Set();
+  _serviceUserIdByName = {}; // заполняется позже из задач (см. buildUserIdMapFromTasks)
+  let offset = 0;
+  while (true) {
+    const data = await pf('/user/list', { offset, pageSize: 100, fields: 'id,name,groups' });
+    const users = data.users || [];
+    for (const u of users) {
+      const inServiceGroup = (u.groups || []).some(g => {
+        const gid = typeof g.id === 'number' ? g.id : parseInt(String(g.id).replace(/\D/g, ''), 10);
+        return SERVICE_GROUP_IDS.has(gid);
+      });
+      if (inServiceGroup) {
+        serviceUserIds.add(u.id);
+        if (u.name) _serviceUserNames.add(u.name);
+      }
+    }
+    if (users.length < 100) break;
+    offset += 100;
+  }
+  return serviceUserIds;
+}
+
+// Строим маппинг "Полное имя" → числовой ID из assignees задач
+// (/ user/list возвращает только имя без фамилии, поэтому берём из задач)
+function buildUserIdMapFromTasks(tasks) {
+  for (const t of tasks) {
+    for (const u of (t.assignees?.users || [])) {
+      if (u.name && u.id) _serviceUserIdByName[u.name] = parseUserId(u.id);
+    }
+  }
+}
+
+// "user:5" → 5
+function parseUserId(raw) {
+  if (typeof raw === 'number') return raw;
+  const m = String(raw).match(/\d+$/);
+  return m ? parseInt(m[0]) : null;
+}
+
+function slaBreached(task, now) {
+  const c = getCreated(task);
+  if (!c) return false;
+  return workingDaysElapsed(c, now) > 3;
+}
+
+function daysOpen(task, now) {
+  const c = getCreated(task);
+  if (!c) return null;
+  return Math.floor((now - c) / 86400000);
+}
+
+function setEl(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+
+// Count-up анимация для числовых KPI-значений
+function setKpiVal(id, rawVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const str = String(rawVal);
+
+  // Парсим число и суффикс: «7 581», «13.8 дн.», «94%»
+  const match = str.replace(/\s/g,'').match(/^([\d.]+)(.*)$/);
+  if (!match) { el.textContent = str; return; }
+
+  const target   = parseFloat(match[1]);
+  const suffix   = match[2] || '';
+  const isFloat  = str.includes('.');
+  const decimals = isFloat ? (str.split('.')[1]?.replace(/[^\d]/g,'').length || 1) : 0;
+  const fmt = v => isFloat
+    ? v.toFixed(decimals) + suffix
+    : Math.round(v).toLocaleString('ru') + suffix;
+
+  const duration  = 700;
+  const startTime = performance.now();
+
+  // Убираем старый pop если был
+  el.classList.remove('kpi-value-pop');
+
+  function tick(now) {
+    const t      = Math.min((now - startTime) / duration, 1);
+    const eased  = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    el.textContent = fmt(target * eased);
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      el.textContent = str; // финальное значение точно
+      void el.offsetWidth;  // reflow для перезапуска анимации
+      el.classList.add('kpi-value-pop');
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Типы обращений ───────────────────────────────────────────────────────────
+const APPEAL_TYPE_COLORS = {
+  'Инцидент':            { bg: '#FF1744', text: '#fff' },
+  'Настройка':           { bg: '#2979FF', text: '#fff' },
+  'Регламентная работа': { bg: '#FFE560', text: '#7C6C16' },
+  'Аналитика и отчеты':  { bg: '#00D06B', text: '#fff' },
+  'Консультация':        { bg: '#EF77BF', text: '#fff' },
+};
+const VISIT_COLORS = {
+  'Выезд требуется':    { bg: '#F4511E', text: '#fff' },
+  'Выезд не требуется': { bg: '#00D06B', text: '#fff' },
+};
+
+function renderAppealsPanel(openTasks, total) {
+  const typeCount = {};    // 114032
+  const catCount  = {};    // 114030
+  const visitCount = {};   // 114046
+  let noType = 0, noCat = 0, noVisit = 0;
+
+  for (const t of openTasks) {
+    const cfd = t.customFieldData || [];
+    let hasType = false, hasCat = false, hasVisit = false;
+    for (const cf of cfd) {
+      const fid = cf.field?.id;
+      const val = cf.stringValue || '';
+      if (fid === 114032) { if (val) { typeCount[val] = (typeCount[val]||0)+1; hasType=true; } }
+      else if (fid === 114030) { if (val) { catCount[val]  = (catCount[val] ||0)+1; hasCat=true;  } }
+      else if (fid === 114046) { if (val) { visitCount[val]= (visitCount[val]||0)+1; hasVisit=true;} }
+    }
+    if (!hasType)  noType++;
+    if (!hasCat)   noCat++;
+    if (!hasVisit) noVisit++;
+  }
+
+  const filledType  = total - noType;
+  const filledCat   = total - noCat;
+  const filledVisit = total - noVisit;
+
+  // Вспомогательная функция: горизонтальный бар
+  const bar = (label, count, maxCount, color, bg, pct) => {
+    const w = maxCount > 0 ? Math.round(count / maxCount * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <div style="flex:0 0 auto;min-width:0;max-width:200px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+        <span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600;background:${bg};color:${color};">${label}</span>
+      </div>
+      <div style="flex:1;background:#1e2235;border-radius:3px;height:8px;overflow:hidden;min-width:30px;">
+        <div style="height:100%;width:${w}%;background:${bg};border-radius:3px;transition:width 0.5s;opacity:0.85;"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:#e2e8f0;min-width:24px;text-align:right;">${count}</span>
+      ${pct !== null ? `<span style="font-size:10px;color:#64748b;min-width:34px;">${pct}%</span>` : ''}
+    </div>`;
+  };
+
+  // Секция 1: Тип обращения
+  const typeEntries = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]);
+  const maxType = typeEntries[0]?.[1] || 1;
+  const typeHtml = `
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+        🗂️ Тип обращения
+        <span style="font-size:10px;color:#475569;font-weight:normal;text-transform:none;letter-spacing:0;">${filledType} из ${total} заполнено</span>
+      </div>
+      ${typeEntries.length
+        ? typeEntries.map(([v,c]) => {
+            const col = APPEAL_TYPE_COLORS[v] || {bg:'#475569',text:'#fff'};
+            return bar(v, c, maxType, col.text, col.bg, total>0?Math.round(c/total*100):0);
+          }).join('')
+        : `<div style="color:#475569;font-size:12px;padding:8px 0;">Нет данных — поле только внедряется</div>`}
+      ${noType > 0 ? `<div style="font-size:10px;color:#475569;margin-top:2px;">Не указано: ${noType}</div>` : ''}
+    </div>`;
+
+  // Секция 2: Выезд
+  const visitEntries = Object.entries(visitCount).sort((a,b)=>b[1]-a[1]);
+  const visitHtml = `
+    <div style="flex:0 0 220px;min-width:0;display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+        🚗 Выезд
+        <span style="font-size:10px;color:#475569;font-weight:normal;text-transform:none;letter-spacing:0;">${filledVisit} из ${total}</span>
+      </div>
+      ${visitEntries.length
+        ? visitEntries.map(([v,c]) => {
+            const col = VISIT_COLORS[v] || {bg:'#475569',text:'#fff'};
+            const maxV = visitEntries[0][1];
+            return bar(v, c, maxV, col.text, col.bg, total>0?Math.round(c/total*100):0);
+          }).join('')
+        : `<div style="color:#475569;font-size:12px;padding:8px 0;">Нет данных</div>`}
+      ${noVisit > 0 ? `<div style="font-size:10px;color:#475569;margin-top:2px;">Не указано: ${noVisit}</div>` : ''}
+    </div>`;
+
+  // Секция 3: Категория запроса (топ 12)
+  const catEntries = Object.entries(catCount).sort((a,b)=>b[1]-a[1]).slice(0, 12);
+  const maxCat = catEntries[0]?.[1] || 1;
+
+  // Уникальный цвет для каждой категории через равномерное распределение по HSL-кругу
+  const CAT_PALETTE = [
+    '#E53935','#D81B60','#8E24AA','#5E35B1','#3949AB','#1E88E5','#039BE5','#00ACC1',
+    '#00897B','#43A047','#7CB342','#C0CA33','#FDD835','#FFB300','#FB8C00','#F4511E',
+    '#6D4C41','#546E7A','#00BCD4','#26A69A','#66BB6A','#D4E157','#FFCA28','#FFA726',
+  ];
+  function catColor(idx) { return CAT_PALETTE[idx % CAT_PALETTE.length]; }
+  function isDark(hex) {
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return (r*299+g*587+b*114)/1000 < 128;
+  }
+
+  const catHtml = `
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+        🏷️ Категория запроса
+        <span style="font-size:10px;color:#475569;font-weight:normal;text-transform:none;letter-spacing:0;">${filledCat} из ${total} заполнено</span>
+      </div>
+      ${catEntries.length
+        ? catEntries.map(([v,c], i) => {
+            const bg = catColor(i);
+            const text = isDark(bg) ? '#fff' : '#1a1a1a';
+            return bar(v, c, maxCat, text, bg, total>0?Math.round(c/total*100):0);
+          }).join('')
+        : `<div style="color:#475569;font-size:12px;padding:8px 0;">Нет данных — поле только внедряется</div>`}
+      ${noCat > 0 ? `<div style="font-size:10px;color:#475569;margin-top:2px;">Не указано: ${noCat}</div>` : ''}
+    </div>`;
+
+  setEl('appeals-area', `<div style="display:flex;gap:20px;width:100%;overflow-y:auto;">
+    ${typeHtml}
+    <div style="width:1px;background:#2d3148;flex-shrink:0;"></div>
+    ${visitHtml}
+    <div style="width:1px;background:#2d3148;flex-shrink:0;"></div>
+    ${catHtml}
+  </div>`);
+}
+
+// ── Топ клиентов за месяц ─────────────────────────────────────────────────────
+async function fetchMonthlyClientStats() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const tasks = [];
+  let offset = 0;
+  while (true) {
+    const data = await pf('/task/list', {
+      offset, pageSize: 100,
+      fields: 'id,113390,114032',
+      filters: [
+        { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+        { type: 12, operator: 'equal', value: { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) } },
+      ]
+    });
+    const batch = data.tasks || [];
+    tasks.push(...batch);
+    if (batch.length < 100) break;
+    offset += 100;
+  }
+  return tasks;
+}
+
+function renderClientPanel(tasks) {
+  const now = new Date();
+  const monthNames = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  const label = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  setEl('clients-panel-title', `🏢 Топ клиентов — ${label} <button class="card-refresh-btn" style="opacity:1;position:static;" onclick="cardRefreshGroup('clients',this)"><span class="btn-icon">↻</span></button><span class="th-hint" style="vertical-align:middle;margin-left:4px;"><span class="th-hint-icon">?</span><div class="th-hint-popup left" style="width:300px;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;">Топ‑10 клиентов по числу <b style="color:#e2e8f0;">новых обращений</b> в этом месяце.<br><br>📌 <b style="color:#e2e8f0;">Поле «Объект»</b> — кастомное поле #113390 в PlanFix.<br>🗓 <b style="color:#e2e8f0;">Фильтр API:</b> тип 12 (дата создания) с 1-го числа по сегодня; тип 51 (шаблон).<br>🎨 <b style="color:#e2e8f0;">Тип обращения</b> — поле #114032 (Инцидент, Настройка и др.)<br><br>Учитываются все статусы — открытые и закрытые. Задачи без заполненного поля «Объект» не входят в топ.<br><br>⚠️ Поле «Объект» заполняется вручную — новые задачи без него не появятся в топе.</div></span>`);
+
+  // Собираем статистику: { objName -> { total, byType: { typeName -> count } } }
+  const objStats = {};
+  let noObj = 0;
+  for (const t of tasks) {
+    const cfd = t.customFieldData || [];
+    const objCf  = cfd.find(c => c.field?.id === 113390);
+    const typeCf = cfd.find(c => c.field?.id === 114032);
+    const obj  = objCf?.stringValue  || '';
+    const type = typeCf?.stringValue || 'Без типа';
+    if (!obj) { noObj++; continue; }
+    if (!objStats[obj]) objStats[obj] = { total: 0, byType: {} };
+    objStats[obj].total++;
+    objStats[obj].byType[type] = (objStats[obj].byType[type] || 0) + 1;
+  }
+
+  const entries = Object.entries(objStats).sort((a,b)=>b[1].total-a[1].total).slice(0, 10);
+  const maxVal = entries[0]?.[1].total || 1;
+  const total  = tasks.length;
+
+  // Цвета типов обращений (те же что в основной панели)
+  const TYPE_COLORS = {
+    'Инцидент':            { bg: '#FF1744', text: '#fff' },
+    'Настройка':           { bg: '#2979FF', text: '#fff' },
+    'Регламентная работа': { bg: '#FFE560', text: '#7C6C16' },
+    'Аналитика и отчеты':  { bg: '#00D06B', text: '#fff' },
+    'Консультация':        { bg: '#EF77BF', text: '#fff' },
+    'Без типа':            { bg: '#92400e', text: '#fbbf24' },
+  };
+  function typeColor(name) { return TYPE_COLORS[name] || { bg: '#475569', text: '#fff' }; }
+
+  function isDk(hex) {
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return (r*299+g*587+b*114)/1000 < 128;
+  }
+
+  if (!entries.length) {
+    setEl('clients-area', `<div style="display:flex;align-items:center;justify-content:center;width:100%;color:#475569;font-size:13px;">Нет данных за этот месяц</div>`);
+    return;
+  }
+
+  const rows = entries.map(([name, stat], i) => {
+    const cnt = stat.total;
+    const barW = Math.round(cnt / maxVal * 100); // ширина всей полосы относительно максимума
+    const pct  = total > 0 ? Math.round(cnt / total * 100) : 0;
+
+    // Сегменты стековой полосы — сортируем по убыванию
+    const typeEntries = Object.entries(stat.byType).sort((a,b)=>b[1]-a[1]);
+    const segments = typeEntries.map(([tname, tcnt]) => {
+      const segPct = Math.round(tcnt / cnt * 100);
+      const col = typeColor(tname);
+      // Всегда вставляем число — overflow:hidden сам обрежет если не влезет
+      return `<div title="${tname}: ${tcnt}" style="flex:${tcnt};background:${col.bg};display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:10px;font-weight:700;color:${col.text};min-width:0;padding:0 2px;">${tcnt}</div>`;
+    }).join('');
+
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+        <div style="flex:0 0 24px;text-align:right;font-size:11px;font-weight:700;color:#475569;">#${i+1}</div>
+        <div style="flex:0 0 300px;min-width:0;" title="${name}">
+          <div style="font-size:11px;font-weight:600;color:#e2e8f0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.3;">${name}</div>
+        </div>
+        <div style="flex:1;background:#1e2235;border-radius:4px;height:22px;overflow:hidden;min-width:60px;">
+          <div style="display:flex;height:100%;width:${barW}%;border-radius:4px;overflow:hidden;transition:width 0.6s;">
+            ${segments}
+          </div>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:#e2e8f0;min-width:28px;text-align:right;">${cnt}</span>
+        <span style="font-size:10px;color:#64748b;min-width:30px;">${pct}%</span>
+      </div>`;
+  }).join('');
+
+  // Легенда: фиксированный порядок типов
+  const TYPE_ORDER = ['Инцидент','Настройка','Регламентная работа','Аналитика и отчеты','Консультация','Без типа'];
+  const usedTypes = TYPE_ORDER.filter(t => entries.some(([,s]) => s.byType[t]));
+  // Добавляем прочие типы, которые не вошли в TYPE_ORDER
+  entries.flatMap(([,s]) => Object.keys(s.byType)).forEach(t => { if (!usedTypes.includes(t)) usedTypes.push(t); });
+  const legend = usedTypes.map(t => {
+    const col = typeColor(t);
+    return `<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#cbd5e1;white-space:nowrap;">
+      <div style="width:12px;height:12px;border-radius:3px;background:${col.bg};flex-shrink:0;border:1px solid rgba(255,255,255,0.1);"></div>${t}
+    </div>`;
+  }).join('');
+
+  const footer = noObj > 0
+    ? `<div style="margin-top:4px;font-size:11px;color:#475569;">Без объекта: ${noObj} из ${total} задач</div>`
+    : '';
+
+  setEl('clients-area', `
+    <div style="width:100%;padding:4px 8px;overflow-y:auto;height:100%;">
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;">
+          Новых обращений: <b style="color:#e2e8f0;">${total}</b>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;padding:7px 10px;background:#151829;border-radius:6px;border:1px solid #2d3148;">
+          ${legend}
+        </div>
+      </div>
+      ${rows}
+      ${footer}
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2d3148;font-size:10px;color:#475569;line-height:1.5;">
+        ℹ️ Все задачи, созданные в этом месяце (открытые и закрытые). Полное название — при наведении на строку.
+      </div>
+    </div>`);
+}
+
+// Рендеринг дашборда из данных (кэш или свежие)
+function renderDashboard(openTasks, serviceUsersRaw, completedCount, now, fromCache, cacheAgeMin, todayStats = {}) {
+  // serviceUsersRaw может быть Set (из API) или Array (из кэша) — нормализуем
+  const serviceUsers = serviceUsersRaw instanceof Set ? serviceUsersRaw : new Set(serviceUsersRaw);
+
+  let active = 0, on_hold = 0, sla_bad = 0;
+  let rework = 0, unassigned = 0, urgent = 0;
+  const byStatus = {}, byAssignee = {};
+
+  for (const t of openTasks) {
+    const cls = classify(t);
+    if (cls === 'active') active++;
+    else if (cls === 'on_hold') on_hold++;
+
+    const sName = t.status?.name || 'Неизвестен';
+    byStatus[sName] = (byStatus[sName] || 0) + 1;
+    if (sName === 'Доработка') rework++;
+
+    // Нераспределённые: нет исполнителя-пользователя, но есть группа Service_Support (185860)
+    // Учитываем только задачи созданные с 01.01.2026
+    const users = t.assignees?.users || [];
+    const groups = t.assignees?.groups || [];
+    const hasServiceGroup = groups.some(g => {
+      const gid = typeof g.id === 'number' ? g.id : parseInt(String(g.id).replace(/\D/g, ''), 10);
+      return gid === 185860;
+    });
+    const createdAt = getCreated(t);
+    const UNASSIGNED_FROM = new Date('2026-01-01');
+    if (users.length === 0 && hasServiceGroup && (!createdAt || createdAt >= UNASSIGNED_FROM)) unassigned++;
+    if (t.priority === 'Urgent') urgent++;
+
+    const breached = cls === 'active' && slaBreached(t, now);
+    if (cls === 'active' && breached) sla_bad++;
+
+    for (const u of (t.assignees?.users || [])) {
+      const uid = parseUserId(u.id);
+      if (!serviceUsers.has(uid)) continue;
+      const n = u.name;
+      if (!byAssignee[n]) byAssignee[n] = { total:0, active:0, on_hold:0, breached:0 };
+      byAssignee[n].total++;
+      if (cls === 'active') byAssignee[n].active++;
+      else if (cls === 'on_hold') byAssignee[n].on_hold++;
+      if (breached) byAssignee[n].breached++;
+    }
+
+  }
+
+  const total = openTasks.length;
+
+  // KPIs
+  setKpiVal('kpi-active', active);
+  setKpiVal('kpi-completed', completedCount);
+  setKpiVal('kpi-breached', sla_bad);
+  setKpiVal('kpi-rework', rework);
+  setEl('kpi-today-val', `${todayStats.created ?? '—'} / ${todayStats.resolved ?? '—'}`);
+  setKpiVal('kpi-unassigned-val', unassigned);
+
+  // Среднее время жизни открытых задач (рабочие дни)
+  // ── Теги карточек ──
+  const tag = (dot, label, bg, text) =>
+    `<span class="kpi-tag" style="background:${bg};color:${text};">` +
+    `<span class="kpi-tag-dot" style="background:${dot};"></span>${label}</span>`;
+
+
+  const activePct = total > 0 ? Math.round(active / total * 100) : 0;
+  setEl('kpi-active-tags',
+    tag('#E8C87A', activePct + '% от всех задач', 'rgba(232,200,122,0.28)', '#E8C87A') +
+    tag('#64748b', 'Отложенных ' + on_hold, 'rgba(100,116,139,0.28)', '#94a3b8'));
+  setEl('kpi-active-footer', `<span>Требуют активных действий</span>`);
+
+  const now_month_acc = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][now.getMonth()];
+  setEl('kpi-completed-tags',
+    tag('#8AC87A', 'За ' + now_month_acc + ' ' + now.getFullYear(), 'rgba(138,200,122,0.28)', '#A0DC8C'));
+  setEl('kpi-completed-footer', `<span>По дате фактического закрытия</span>`);
+
+  const breachPct = active > 0 ? Math.round(sla_bad / active * 100) : 0;
+  setEl('kpi-breached-tags',
+    tag('#E87A5A', breachPct + '% от активных', 'rgba(232,122,90,0.28)', '#F0907A') +
+    tag('#64748b', '> 3 раб. дней', 'rgba(100,116,139,0.28)', '#94a3b8'));
+  setEl('kpi-breached-footer', `<span>Нарушение SLA-норматива</span>`);
+
+  const reworkPct = active > 0 ? Math.round(rework / active * 100) : 0;
+  setEl('kpi-rework-tags',
+    tag('#E8907A', reworkPct + '% от активных', 'rgba(232,144,122,0.15)', '#E8907A'));
+  setEl('kpi-rework-footer', `<span>Возвращены на повторную работу</span>`);
+
+  const todayC = todayStats.created ?? 0, todayR = todayStats.resolved ?? 0;
+  const todayBalance = todayC - todayR;
+  setEl('kpi-today-tags', ''); // не нужны — значение уже показывает создано/решено
+  setEl('kpi-today-footer',
+    todayBalance > 0
+      ? `<span class="kpi-trend-down">▲ +${todayBalance} в очереди за день</span>`
+      : todayBalance < 0
+        ? `<span class="kpi-trend-up">▼ ${Math.abs(todayBalance)} сокращение очереди</span>`
+        : `<span class="kpi-trend-neu">= Баланс нулевой</span>`);
+
+  const unassignedPct = total > 0 ? Math.round(unassigned / total * 100) : 0;
+  setEl('kpi-unassigned-tags',
+    tag('#DEC49A', unassignedPct + '% от всех задач', 'rgba(222,196,154,0.15)', '#DEC49A') +
+    tag('#64748b', 'Группа Service_Support', 'rgba(100,116,139,0.28)', '#94a3b8'));
+  setEl('kpi-unassigned-footer', `<span>Требуют назначения исполнителя</span>`);
+
+
+  setEl('kpi-close-tags',
+    tag('#86C0AC', 'За текущий месяц', 'rgba(134,192,172,0.15)', '#86C0AC'));
+  setEl('kpi-close-footer', `<span>Только задачи созданные и закрытые в этом месяце</span>`);
+
+  const urgentPct = total > 0 ? Math.round(urgent / total * 100) : 0;
+  setKpiVal('kpi-urgent-val', urgent);
+  setEl('kpi-urgent-tags',
+    tag('#F4511E', urgentPct + '% от всех задач', 'rgba(244,81,30,0.18)', '#F4511E'));
+  setEl('kpi-urgent-footer', `<span>Требуют немедленного внимания</span>`);
+
+  // Appeals breakdown
+  try { renderAppealsPanel(openTasks, total); } catch(e) { console.error('[appeals]', e); }
+
+  // Status breakdown
+  const statusEntries = Object.entries(byStatus).sort((a,b) => b[1]-a[1]);
+  const maxS = statusEntries[0]?.[1] || 1;
+  setEl('status-list', statusEntries.map(([name, cnt]) => {
+    const color = STATUS_COLORS[name] || '#64748b';
+    const w = Math.round(cnt/maxS*100);
+    return `<div class="status-row">
+      <span class="status-dot" style="background:${color}"></span>
+      <span style="flex:0 0 170px;font-size:13px;">${esc(name)}</span>
+      <div class="status-bar-wrap"><div class="status-bar" style="width:${w}%;background:${color}55;border:1px solid ${color}88;"></div></div>
+      <span class="status-count">${cnt}</span>
+    </div>`;
+  }).join('') || '<div class="loading">Нет данных</div>');
+
+  // Assignee table — рендерим с пустыми данными о закрытых (придут в фоне)
+  renderAssigneeTable(openTasks, serviceUsers);
+  renderDutyPanel({}, {}, todayStats, null); // состав сразу, статы и история придут в фоне
+
+  // Chart обновляется отдельно через renderChart()
+
+  // Тултип и сноска "Завершённых" — показываем конкретный месяц
+  const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня',
+                      'июля','августа','сентября','октября','ноября','декабря'];
+  const MONTHS_NOM = ['январь','февраль','март','апрель','май','июнь',
+                      'июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+  const mon = now.getMonth();
+  setEl('kpi-completed-tip',
+    `Задачи, фактически завершённые с <b>1 ${MONTHS_GEN[now.getMonth()]}</b> по сегодня.<br><br><b>Фильтр API:</b><br>• Тип 51 (шаблон): сервисные шаблоны<br>• Тип 10 (статус): «Завершённая» (id=3)<br>• Тип 19 (дата закрытия): с 1-го по сегодня<br><br><span style="color:#64748b;">Сбрасывается в 0 каждое 1-е число. Если задача переоткрыта и закрыта снова — учитывается по последнему закрытию.</span>`);
+
+  // Метка времени
+  const cacheLabel = fromCache ? ` · кэш ${cacheAgeMin} мин.` : '';
+  document.getElementById('last-update').textContent =
+    'Обновлено: ' + now.toLocaleTimeString('ru-RU') + cacheLabel;
+}
+
+let _monthChart = null;
+
+// ── Сортировка таблицы нагрузки ──────────────────────────────────────────────
+let _assigneeSortCol = 'incoming'; // incoming | closed | backlog | weighted
+let _assigneeSortDir = 'desc';     // asc | desc
+let _lastAssigneeArgs = null;
+let _assigneeGroupCollapsed = { service: false, other: false };
+
+// ── Панель дежурства ─────────────────────────────────────────────────────────
+let _lastTodayStats        = { created: 0, resolved: 0 };
+let _lastCompletedCount    = '—';
+let _lastChartData           = null;
+let _lastClosedByAssignee    = {};
+let _lastCreatedByAssignee   = {};
+let _lastTodayClosedByName = null; // null = ещё не загружено, {} = загружено (может быть пустым)
+let _lastDraftsByName      = null;
+let _lastTaskIdToAssignee  = {};  // taskId → assigneeName
+let _periodStats           = {}; // ключ: 'YYYY-MM-DD_YYYY-MM-DD' → { created:{}, closed:{} }
+
+// Загружает статистику (создано/закрыто) за конкретный период дежурства
+async function fetchPeriodStats(fromStr, toStr) {
+  const key = `${fromStr}_${toStr}`;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isCurrent = fromStr <= todayStr && todayStr <= toStr;
+  // Текущий период не кэшируем — данные за сегодня меняются
+  if (!isCurrent && _periodStats[key]) return _periodStats[key];
+
+  const toDate = new Date(toStr + 'T23:59:59');
+  const frDate = new Date(fromStr + 'T00:00:00');
+  const rangeFrom = pfDate(frDate), rangeTo = pfDate(toDate);
+
+  // created — фильтр type:1 (Постановщик = он), дата создания в период
+  const fetchCreatedByPerson = async (personName) => {
+    const userId = _serviceUserIdByName[personName];
+    if (!userId) return 0;
+    let count = 0, offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id',
+        filters: [
+          { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+          { type: 12, operator: 'equal', value: { dateType: 'otherRange', dateFrom: rangeFrom, dateTo: rangeTo } },
+          { type: 1,  operator: 'equal', value: `user:${userId}` },
+        ]
+      });
+      count += (data.tasks || []).length;
+      if (!data.tasks?.length || data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return count;
+  };
+
+  // closed — Постановщик = он И Исполнитель = он, дата СОЗДАНИЯ в период + статус Завершённая
+  const fetchClosedByPerson = async (personName) => {
+    const userId = _serviceUserIdByName[personName];
+    if (!userId) return 0;
+    let count = 0, offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id',
+        filters: [
+          { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+          { type: 10, operator: 'equal', value: [...COMPLETED_IDS] },
+          { type: 12, operator: 'equal', value: { dateType: 'otherRange', dateFrom: rangeFrom, dateTo: rangeTo } },
+          { type: 1,  operator: 'equal', value: `user:${userId}` },
+          { type: 2,  operator: 'equal', value: `user:${userId}` },
+        ]
+      });
+      count += (data.tasks || []).length;
+      if (!data.tasks?.length || data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return count;
+  };
+
+  // closedToday — то же самое, дата создания = сегодня (только для текущего периода)
+  const fetchClosedTodayByPerson = async (personName) => {
+    const userId = _serviceUserIdByName[personName];
+    if (!userId) return 0;
+    let count = 0, offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id',
+        filters: [
+          { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+          { type: 10, operator: 'equal', value: [...COMPLETED_IDS] },
+          { type: 12, operator: 'equal', value: { dateType: 'otherDate', dateValue: pfDate(new Date()) } },
+          { type: 1,  operator: 'equal', value: `user:${userId}` },
+          { type: 2,  operator: 'equal', value: `user:${userId}` },
+        ]
+      });
+      count += (data.tasks || []).length;
+      if (!data.tasks?.length || data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return count;
+  };
+
+  // Имена всех дежурных за этот период
+  const schedule = (() => {
+    try { const s = localStorage.getItem('duty_schedule_override'); return s ? JSON.parse(s) : DUTY_SCHEDULE; }
+    catch { return DUTY_SCHEDULE; }
+  })();
+  const periodEntry = schedule.find(e => e.from === fromStr) || null;
+  const dutyPersons = periodEntry
+    ? [...(periodEntry.day || []), ...(periodEntry.evening || []), ...(periodEntry.duty || [])].map(p => p.name)
+    : [];
+
+  // createdToday — создано сегодня дежурным (Постановщик=он, дата создания=сегодня)
+  const fetchCreatedTodayByPerson = async (personName) => {
+    const userId = _serviceUserIdByName[personName];
+    if (!userId) return 0;
+    let count = 0, offset = 0;
+    while (true) {
+      const data = await pf('/task/list', {
+        offset, pageSize: 100, fields: 'id',
+        filters: [
+          { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+          { type: 12, operator: 'equal', value: { dateType: 'otherDate', dateValue: pfDate(new Date()) } },
+          { type: 1,  operator: 'equal', value: `user:${userId}` },
+        ]
+      });
+      count += (data.tasks || []).length;
+      if (!data.tasks?.length || data.tasks.length < 100) break;
+      offset += 100;
+    }
+    return count;
+  };
+
+  // Параллельно: для каждого дежурного — создано + закрыто (+ сегодня для текущего периода)
+  const allResults = await Promise.all(dutyPersons.map(async name => {
+    const [cr, cl, td, ctd] = await Promise.all([
+      fetchCreatedByPerson(name),
+      fetchClosedByPerson(name),
+      isCurrent ? fetchClosedTodayByPerson(name) : Promise.resolve(0),
+      isCurrent ? fetchCreatedTodayByPerson(name) : Promise.resolve(0),
+    ]);
+    return { name, cr, cl, td, ctd };
+  }));
+
+  const created       = Object.fromEntries(allResults.map(r => [r.name, r.cr]));
+  const closed        = Object.fromEntries(allResults.map(r => [r.name, r.cl]));
+  const closedToday   = isCurrent ? Object.fromEntries(allResults.map(r => [r.name, r.td]))  : {};
+  const createdToday  = isCurrent ? Object.fromEntries(allResults.map(r => [r.name, r.ctd])) : {};
+
+  const result = { created, closed, closedToday, createdToday };
+  _periodStats[key] = result;
+  return result;
+}
+
+// Загружает статистику по всем прошедшим сменам текущего месяца (батчами по 3)
+async function fetchAllDutyPeriodStats() {
+  // Гарантируем что маппинг имён→ID актуален (строим из кэша открытых задач)
+  if (_cachedOpenTasks?.length && Object.keys(_serviceUserIdByName).length === 0) {
+    buildUserIdMapFromTasks(_cachedOpenTasks);
+  }
+  const schedule = (() => {
+    try {
+      const s = localStorage.getItem('duty_schedule_override');
+      return s ? JSON.parse(s) : DUTY_SCHEDULE;
+    } catch { return DUTY_SCHEDULE; }
+  })();
+  const today = new Date().toISOString().slice(0, 10);
+  const monthPrefix = today.slice(0, 7) + '-01';
+  // Все периоды месяца: и прошедшие, и текущий
+  const periods = schedule.filter(e => e.from >= monthPrefix && e.from <= today);
+  for (let i = 0; i < periods.length; i += 3) {
+    await Promise.all(periods.slice(i, i + 3).map(e => fetchPeriodStats(e.from, e.to)));
+  }
+}
+
+function renderDutyPanel(closedByName = {}, createdByName = {}, todayStats = _lastTodayStats, chartData = _lastChartData) {
+  if (todayStats) _lastTodayStats = todayStats;
+  if (chartData)  _lastChartData  = chartData;
+
+  const now = new Date();
+  const fmtKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayStr = fmtKey(now);
+
+  // Поддержка пользовательского расписания из localStorage
+  let schedule = DUTY_SCHEDULE;
+  try {
+    const saved = localStorage.getItem('duty_schedule_override');
+    if (saved) schedule = JSON.parse(saved);
+  } catch {}
+
+  const duty = schedule.find(e => e.from <= todayStr && todayStr <= e.to) || null;
+
+  // ── Ночной перенос: до 08:00 дежурит вечерняя смена предыдущего дня ─────────
+  const isNight = now.getHours() < 8;
+  let nightDuty = null;   // период вчерашнего дня (если до 08:00)
+  let nightPStats = null; // его статистика
+  if (isNight) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = fmtKey(yesterday);
+    nightDuty = schedule.find(e => e.from <= yesterdayStr && yesterdayStr <= e.to) || null;
+    if (nightDuty) nightPStats = _periodStats[`${nightDuty.from}_${nightDuty.to}`];
+  }
+
+  const ROLE_LABELS = { 'тимлид':'👑 Тимлид', '1лн':'1 лн', 'подхват':'Подхват', 'standard':'Дежурный' };
+  const titleEl = document.getElementById('duty-panel-title');
+
+  if (!duty && !nightDuty) {
+    setEl('duty-area', '<div class="loading">Нет данных о дежурстве на сегодня</div>');
+    if (titleEl) titleEl.childNodes[0].textContent = 'Дежурство — нет данных ';
+    return;
+  }
+
+  const activeDuty = duty || nightDuty;
+  const fromD = activeDuty.from.slice(8)+'.'+activeDuty.from.slice(5,7);
+  const toD   = activeDuty.to.slice(8)+'.'+activeDuty.to.slice(5,7);
+  if (titleEl) titleEl.childNodes[0].textContent = `Дежурство ${fromD}–${toD} `;
+
+  // Компактные цифры "Сегодня"
+  // Статистика за сегодня — только по дежурным текущей смены
+  const curPStats = duty ? _periodStats[`${duty.from}_${duty.to}`] : null;
+  const activeDutyPersons = [
+    ...((duty || nightDuty)?.day     || []),
+    ...((duty || nightDuty)?.evening || []),
+    ...((duty || nightDuty)?.duty    || []),
+  ];
+  const td_c = curPStats?.createdToday
+    ? activeDutyPersons.reduce((s, p) => s + (curPStats.createdToday[p.name] || 0), 0)
+    : null;
+  const td_r = curPStats?.closedToday
+    ? activeDutyPersons.reduce((s, p) => s + (curPStats.closedToday[p.name]  || 0), 0)
+    : null;
+  // bal = создано − решено: +N красный (очередь выросла), -N зелёный (очередь сократилась)
+  const bal = (td_c !== null && td_r !== null) ? td_c - td_r : null;
+  const todayBadge = `<span style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+    <span class="th-hint" style="display:inline-flex;">
+      <span style="font-size:10px;color:#475569;cursor:help;">Сегодня (дежурные):</span>
+      <div class="th-hint-popup left" style="width:240px;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;">
+        <b style="color:#e2e8f0;">Статистика за сегодня — только по дежурным</b><br><br>
+        Считаются задачи, где один из дежурных инженеров — <b style="color:#e2e8f0;">Постановщик</b>.<br><br>
+        <b style="color:#C4604A;">↓ Создано</b> — тип 1 (Постановщик=дежурный) + дата создания = сегодня<br>
+        <b style="color:#5ABEAA;">✓ Закрыл</b> — тип 1 + тип 2 (Постановщик И Исполнитель=дежурный) + дата создания = сегодня + статус 3<br><br>
+        <span style="color:#475569;">Баланс = Создано − Закрыл. <span style="color:#f87171;">+N красный</span> = очередь выросла, <span style="color:#4ade80;">−N зелёный</span> = очередь сократилась.</span>
+      </div>
+    </span>
+    ${td_c !== null
+      ? `<span style="color:#C4604A;font-weight:700;font-size:12px;">↓${td_c}</span>
+         <span style="color:#5ABEAA;font-weight:700;font-size:12px;">✓${td_r}</span>
+         ${bal !== null ? `<span style="color:${bal>0?'#f87171':'#4ade80'};font-weight:700;font-size:12px;">${bal>0?'+':''}${bal}</span>` : ''}`
+      : `<span style="font-size:10px;color:#475569;"><span class="spinner" style="width:7px;height:7px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:3px;"></span>загружается</span>`
+    }
+  </span>`;
+
+  // Статистика за текущий период дежурства
+  // Рендер смены — принимает явный pStats чтобы поддерживать ночной перенос
+  const renderShift = (persons, icon, label, showTodayBadge = false, pStats = curPStats) => {
+    if (!persons?.length) return '';
+    return `<div class="duty-shift">
+      <div class="duty-shift-label" style="display:flex;align-items:center;">
+        <span>${icon} ${label}</span>
+        ${showTodayBadge ? todayBadge : ''}
+      </div>
+      <div class="duty-persons">
+        ${persons.map(p => {
+          const cl  = pStats ? (pStats.closed[p.name]  || 0) : null;
+          const cr  = pStats ? (pStats.created[p.name] || 0) : null;
+          const td  = (pStats && pStats.closedToday) ? (pStats.closedToday[p.name] || 0) : null;
+          const pct = (pStats && cr > 0) ? Math.round(cl/cr*100) : (pStats ? '—' : null);
+          const pctColor = typeof pct==='number' ? (pct>=100?'#5ABEAA':pct>=80?'#fbbf24':'#94a3b8') : '#64748b';
+          const statsHtml = pStats
+            ? ((cl + cr) > 0
+                ? `<div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+                    <span style="color:#C4604A;font-size:11px;">↓ ${cr} создал</span>
+                    <span class="duty-hint">?<div class="duty-hint-popup">Задачи, <b style="color:#e2e8f0;">созданные в период дежурства</b>, где инженер — Постановщик.<br><br><span style="color:#475569;">Фильтр: шаблон + тип 1 (Постановщик) + дата создания в период.</span></div></span>
+                    <span style="color:#2d3148;">·</span>
+                    <span style="color:#5ABEAA;font-size:11px;">✓ ${cl} закрыл</span>
+                    <span class="duty-hint">?<div class="duty-hint-popup">Задачи, <b style="color:#e2e8f0;">созданные в период</b> дежурства, где он одновременно Постановщик И Исполнитель, статус «Завершена».<br><br><span style="color:#475569;">Фильтр: тип 1 + тип 2 + дата создания в период + статус 3.<br>⚠ Задачи созданные до смены не считаются.</span></div></span>
+                    <span style="color:#2d3148;">·</span>
+                    <span style="color:${pctColor};font-size:11px;">${typeof pct==='number'?pct+'% эфф':pct}</span>
+                    <span class="duty-hint">?<div class="duty-hint-popup">Закрыл ÷ Создал × 100%.<br><br><b style="color:#5ABEAA;">≥ 100%</b> — закрывает всё своё<br><b style="color:#fbbf24;">80–99%</b> — норма<br><b style="color:#94a3b8;">&lt; 80%</b> — накапливает незакрытые</div></span>
+                    ${td !== null ? `
+                    <span style="color:#2d3148;">·</span>
+                    <span style="color:#A78BFA;font-size:11px;">📅 ${td} сегодня</span>
+                    <span class="duty-hint">?<div class="duty-hint-popup">Задачи, <b style="color:#e2e8f0;">созданные сегодня</b>, где он Постановщик И Исполнитель, статус «Завершена».</div></span>` : ''}
+                  </div>`
+                : '<div style="font-size:10px;color:#475569;margin-top:6px;">нет задач за период</div>')
+            : '<div style="font-size:10px;color:#475569;margin-top:6px;"><span class="spinner" style="width:8px;height:8px;border-width:1.5px;vertical-align:middle;display:inline-block;margin-right:4px;"></span>загружается...</div>';
+          return `<div class="duty-person">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="duty-role-badge role-${p.role}">${ROLE_LABELS[p.role]||p.role}</span>
+              <span class="duty-person-name">${esc(p.name)}</span>
+            </div>
+            ${statsHtml}
+          </div>`;
+        }).join('')}
+      </div></div>`;
+  };
+
+  const nightBanner = `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:6px;font-size:11px;color:#a5b4fc;">
+    <b>До 08:00</b> — ночное дежурство (продолжается с прошлой смены)
+  </div>`;
+  const handoverBanner = `<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;margin:6px 0;background:rgba(232,147,90,0.08);border:1px solid rgba(232,147,90,0.2);border-radius:6px;font-size:11px;color:#E8935A;">
+    <b>С 08:00</b> — заступает дневная смена
+  </div>`;
+
+  let rosterHtml = '';
+
+  if (isNight && nightDuty) {
+    // ── До 08:00: показываем кто сейчас и кто заступает ──
+    const nowPersons = nightDuty.type === 'weekend' ? nightDuty.duty : (nightDuty.evening || []);
+    const nextPersons = duty
+      ? (duty.type === 'weekend' ? duty.duty : (duty.day || []))
+      : [];
+    rosterHtml = nightBanner
+      + renderShift(nowPersons, '🌙', 'Дежурит сейчас', false, nightPStats)
+      + (nextPersons.length ? handoverBanner + renderShift(nextPersons, '☀️', 'Следующая смена', false, curPStats) : '');
+
+  } else if (duty.type === 'weekend') {
+    rosterHtml = renderShift(duty.duty, '📋', 'Выходной дежурный', true);
+  } else {
+    rosterHtml = `<div style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:6px;font-size:10px;color:#64748b;">
+        Сегодня: <span style="color:#C4604A;font-weight:700;margin:0 4px;">↓${td_c}</span>
+        создано / <span style="color:#5ABEAA;font-weight:700;margin:0 4px;">✓${td_r}</span> решено
+        ${bal !== null ? `/ <span style="color:${bal>0?'#f87171':'#4ade80'};font-weight:700;margin-left:4px;">${bal>0?'+':''}${bal} баланс</span>` : ''}
+      </div>`
+      + renderShift(duty.day, '☀️', 'День')
+      + renderShift(duty.evening, '🌙', 'Вечер');
+  }
+
+  // ── Предыдущие смены ──
+  let prevHtml = `<div class="duty-divider"></div>
+    <div style="font-size:10px;color:#2d3148;text-align:center;padding:10px;">
+      <span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> История загружается...
+    </div>`;
+  if (chartData) {
+    const { createdByDay, resolvedByDay } = chartData;
+    const monthPrefix = duty.from.slice(0,7) + '-01';
+    const prevShifts  = schedule.filter(e => e.to < todayStr && e.from >= monthPrefix);
+
+    if (prevShifts.length > 0) {
+      const shiftRows = prevShifts.slice().reverse().map(s => {
+        // Суммируем из chartData
+        let c = 0, r = 0;
+        const cur = new Date(s.from), end = new Date(s.to);
+        while (cur <= end) {
+          const k = fmtKey(cur);
+          c += createdByDay[k] || 0;
+          r += resolvedByDay[k] || 0;
+          cur.setDate(cur.getDate() + 1);
+        }
+        const fromLbl = s.from.slice(8)+'.'+s.from.slice(5,7);
+        const toLbl   = s.to.slice(8)+'.'+s.to.slice(5,7);
+        const period  = `${fromLbl}–${toLbl}`;
+
+        // Заголовок смены
+        // Каждый человек отдельно
+        const allP = s.type === 'weekend'
+          ? s.duty : [...(s.day||[]).map(p=>({...p,shift:'☀️'})), ...(s.evening||[]).map(p=>({...p,shift:'🌙'}))];
+
+        const pStats = _periodStats[`${s.from}_${s.to}`];
+
+        // Сумма по команде из periodStats
+        const teamCr = pStats ? allP.reduce((sum,p) => sum + (pStats.created[p.name]||0), 0) : null;
+        const teamCl = pStats ? allP.reduce((sum,p) => sum + (pStats.closed[p.name]||0),  0) : null;
+
+        const teamCrHtml = teamCr !== null
+          ? `<span style="color:#7aa4c4;font-size:10px;">(${teamCr} ком.)</span>` : '';
+        const teamClHtml = teamCl !== null
+          ? `<span style="color:#3d9e87;font-size:10px;">(${teamCl} ком.)</span>` : '';
+
+        let rows = `<tr class="duty-period-header">
+          <td colspan="5" style="padding:5px 8px;">
+            📅 ${period} · <span style="color:#A8C8E8;">Создано ${c} ${teamCrHtml}</span> · <span style="color:#5ABEAA;">Решено ${r} ${teamClHtml}</span>
+          </td></tr>`;
+        rows += allP.map(p => {
+          const cl  = pStats ? (pStats.closed[p.name]  || 0) : null;
+          const cr  = pStats ? (pStats.created[p.name] || 0) : null;
+          const pct = (pStats && cr > 0) ? Math.round(cl/cr*100) : (pStats ? '—' : '…');
+          return `<tr>
+            <td style="padding-left:16px;">
+              <span style="color:#475569;margin-right:4px;">${p.shift||''}</span>
+              <span class="duty-role-badge role-${p.role}" style="margin-right:4px;">${ROLE_LABELS[p.role]||p.role}</span>
+              ${esc(p.name)}
+            </td>
+            <td style="text-align:center;color:#C4604A;font-weight:600;">${cr !== null ? cr : '<span style=color:#2d3148>…</span>'}</td>
+            <td style="text-align:center;color:#5ABEAA;font-weight:600;">${cl !== null ? cl : '<span style=color:#2d3148>…</span>'}</td>
+            <td style="text-align:center;color:${typeof pct==='number'?(pct>=100?'#5ABEAA':pct>=80?'#fbbf24':'#94a3b8'):'#64748b'};font-weight:600;">${typeof pct==='number'?pct+'%':pct}</td>
+          </tr>`;
+        }).join('');
+        return rows;
+      }).join('');
+
+      prevHtml = `
+        <div class="duty-divider"></div>
+        <div style="font-size:10px;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">📆 Предыдущие смены (статистика за период дежурства)</div>
+        <table class="duty-stats-table">
+          <thead><tr>
+            <th>Сотрудник</th>
+            <th style="text-align:center;">📥 Создал</th>
+            <th style="text-align:center;">✓ Закрыл</th>
+            <th style="text-align:center;">
+              <span class="th-hint">
+                % эфф
+                <span class="th-hint-icon">?</span>
+                <div class="th-hint-popup" style="width:260px;right:-8px;">
+                  <b style="color:#e2e8f0;">Эффективность закрытия</b><br>
+                  Формула: <b style="color:#5ABEAA;">Закрыл ÷ Создал × 100%</b><br><br>
+                  <span style="color:#64748b;">Статистика считается <b style="color:#94a3b8;">только за период смены</b>, а не за весь месяц.</span><br><br>
+                  <b style="color:#A8C8E8;">📥 Создал</b> — задачи, где инженер — Постановщик (тип 1), дата создания в период смены.<br>
+                  <b style="color:#5ABEAA;">✓ Закрыл</b> — задачи, где он одновременно <b style="color:#e2e8f0;">Постановщик И Исполнитель</b> (тип 1 + тип 2), <b style="color:#e2e8f0;">дата создания</b> в период, статус Завершённая.<br><br>
+                  🟢 <b style="color:#5ABEAA;">≥ 100%</b> — закрывает больше чем принимает (разгребает чужое)<br>
+                  🟡 <b style="color:#fbbf24;">80–99%</b> — небольшой дефицит, норма<br>
+                  ⚪ <b style="color:#94a3b8;">&lt; 80%</b> — принимает заметно больше, чем закрывает<br><br>
+                  <span style="color:#475569;font-size:10px;">Сумма по инженерам ≠ итогу в заголовке: туда входят все задачи системы, в т.ч. назначенные вне смены.</span>
+                </div>
+              </span>
+            </th>
+          </tr></thead>
+          <tbody>${shiftRows}</tbody>
+        </table>`;
+    }
+  }
+
+  setEl('duty-area', rosterHtml + prevHtml);
+}
+
+// ── Модал: список срочных задач ──────────────────────────────────────────────
+function openUrgentTasksModal(event) {
+  event.stopPropagation();
+  const urgent = (_cachedOpenTasks || []).filter(t => t.priority === 'Urgent');
+
+  const rows = urgent.map(t => {
+    const name = esc(t.name || '—');
+    const obj  = esc(t.counterparty?.name || '—');
+    const taskUrl = `https://restu.planfix.ru/task/${t.id}`;
+    return `<tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #1e2235;font-size:12px;color:#e2e8f0;max-width:320px;word-break:break-word;">
+        <a href="${taskUrl}" target="_blank" style="color:#e2e8f0;text-decoration:none;" onmouseover="this.style.color='#E8935A'" onmouseout="this.style.color='#e2e8f0'">${name}</a>
+      </td>
+      <td style="padding:7px 10px;border-bottom:1px solid #1e2235;font-size:11px;color:#94a3b8;max-width:220px;word-break:break-word;">${obj}</td>
+    </tr>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'duty-modal-overlay';
+  overlay.innerHTML = `
+    <div class="duty-modal" style="max-width:680px;max-height:80vh;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h3 style="font-size:16px;font-weight:700;color:#fff;">🚨 Срочные задачи <span style="font-size:13px;font-weight:400;color:#64748b;margin-left:8px;">${urgent.length} шт.</span></h3>
+        <button onclick="this.closest('.duty-modal-overlay').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <p style="font-size:12px;color:#475569;margin-bottom:14px;">Открытые задачи с флагом «Срочная». Клик по названию открывает задачу в PlanFix.</p>
+      ${urgent.length === 0
+        ? `<div style="padding:24px;text-align:center;color:#475569;font-size:13px;">Нет срочных задач 🎉</div>`
+        : `<div style="overflow-y:auto;flex:1;min-height:0;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr>
+                <th style="padding:6px 10px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;border-bottom:1px solid #2d3148;">Название задачи</th>
+                <th style="padding:6px 10px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:#64748b;border-bottom:1px solid #2d3148;">Объект / Клиент</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`}
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;flex-shrink:0;">
+        <button class="duty-modal-btn save" onclick="this.closest('.duty-modal-overlay').remove()">Закрыть</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ── Модал: расшифровка графика Создано/Решено ────────────────────────────────
+function openChartInfoModal() {
+  const now = new Date();
+  const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const mon = MONTHS_GEN[now.getMonth()];
+  const year = now.getFullYear();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'duty-modal-overlay';
+  overlay.innerHTML = `
+    <div class="duty-modal" style="max-width:520px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h3 style="font-size:16px;font-weight:700;color:#fff;">График «Создано / Решено»</h3>
+        <button onclick="this.closest('.duty-modal-overlay').remove()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <p style="font-size:12px;color:#475569;margin-bottom:16px;">Данные за текущий месяц — с 1 ${mon} по сегодня. Обновляется при каждом нажатии ↻.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="background:#0f1117;border-radius:8px;padding:14px 16px;border-left:3px solid #C4604A;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="width:28px;height:3px;background:#C4604A;border-radius:2px;"></div>
+            <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Создано</span>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;line-height:1.6;">Количество задач, <b style="color:#e2e8f0;">созданных</b> в данный день по шаблонам Service_support и Внешняя-Маркетинговая акция. Учитываются все задачи вне зависимости от статуса.</p>
+        </div>
+
+        <div style="background:#0f1117;border-radius:8px;padding:14px 16px;border-left:3px solid #5ABEAA;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <div style="width:28px;height:3px;background:#5ABEAA;border-radius:2px;"></div>
+            <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Решено</span>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;line-height:1.6;">Количество задач, у которых <b style="color:#e2e8f0;">дата фактического закрытия</b> попадает на этот день. Задача могла быть создана в любое время — считается только дата завершения.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:10px 14px;background:#151829;border-radius:8px;border:1px solid #2d3148;font-size:11px;color:#64748b;line-height:1.7;">
+        <div>📅 <b style="color:#94a3b8;">Период:</b> 1–${now.getDate()} ${mon} ${year}</div>
+        <div>🔄 <b style="color:#94a3b8;">Сброс:</b> 1-е число каждого месяца — данные начинают накапливаться заново</div>
+        <div>📌 <b style="color:#94a3b8;">Превышение «Решено» над «Создано»</b> — нормально: инженеры закрывают задачи, накопленные в прошлых месяцах</div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #2d3148;">
+          <b style="color:#94a3b8;">Фильтры API (/task/list):</b><br>
+          Создано — тип 12 (дата создания) = конкретный день<br>
+          Решено — тип 10 статус=3 (Завершённая) + тип 20 (дата перевода в статус) = конкретный день<br>
+          ~2 запроса на каждый день месяца (~${now.getDate() * 2} запросов итого)
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+        <button class="duty-modal-btn save" onclick="this.closest('.duty-modal-overlay').remove()">Понятно</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// ── Редактор расписания (визуальный UI) ──────────────────────────────────────
+function openDutyScheduleEditor() {
+  const saved = localStorage.getItem('duty_schedule_override');
+  let schedule = JSON.parse(JSON.stringify(saved ? JSON.parse(saved) : DUTY_SCHEDULE));
+
+  // Список известных имён для autocomplete
+  const KNOWN_NAMES = [...new Set(DUTY_SCHEDULE.flatMap(e =>
+    [...(e.day||[]), ...(e.evening||[]), ...(e.duty||[])].map(p => p.name)
+  ))].sort((a,b) => a.localeCompare(b,'ru'));
+
+  const ROLES = ['тимлид','1лн','подхват','standard'];
+  const ROLE_LABELS = { 'тимлид':'👑 Тимлид','1лн':'📞 1-я линия','подхват':'🔄 Подхват','standard':'👤 Дежурный' };
+
+  let editingIdx = null;   // null=список, -1=новый
+  let editPeriod = null;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'duty-modal-overlay';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // ── Форматирование ──
+  function fmtDate(s) {
+    if (!s) return '?';
+    const [y,m,d] = s.split('-');
+    return `${d}.${m}.${y}`;
+  }
+  function periodSummary(p) {
+    return [...(p.day||[]), ...(p.evening||[]), ...(p.duty||[])]
+      .map(x => x.name.split(' ').slice(0,2).join(' ')).join(', ');
+  }
+  function roleOpt(r, selected) {
+    return `<option value="${r}" ${r===selected?'selected':''}>${ROLE_LABELS[r]||r}</option>`;
+  }
+
+  // ── Синхронизация DOM → editPeriod ──
+  function syncDOM() {
+    if (!editPeriod) return;
+    const f = document.getElementById('dse-from');
+    const t = document.getElementById('dse-to');
+    if (f) editPeriod.from = f.value;
+    if (t) editPeriod.to = t.value;
+    document.querySelectorAll('.dse-staff-row[data-key]').forEach(row => {
+      const key = row.dataset.key, pi = +row.dataset.pi;
+      if (editPeriod[key]?.[pi] !== undefined) {
+        const n = row.querySelector('.dse-name-input');
+        const r = row.querySelector('.dse-role-select');
+        if (n) editPeriod[key][pi].name = n.value;
+        if (r) editPeriod[key][pi].role = r.value;
+      }
+    });
+  }
+
+  // ── Рендер списка периодов ──
+  function renderList() {
+    const sorted = [...schedule].map((p,i)=>({...p,_i:i}))
+                    .sort((a,b)=>a.from.localeCompare(b.from));
+    const rows = sorted.map(p => {
+      const typeLabel = p.type==='weekend' ? '🏖 Выходные' : '🗓 Рабочая неделя';
+      const people = periodSummary(p);
+      return `<div class="dse-period-row">
+        <div class="dse-period-dates">${fmtDate(p.from)} — ${fmtDate(p.to)}</div>
+        <div class="dse-period-type">${typeLabel}</div>
+        <div class="dse-period-people">${people||'<i>нет сотрудников</i>'}</div>
+        <div class="dse-period-actions">
+          <button class="dse-icon-btn" onclick="window._dse.edit(${p._i})" title="Редактировать">✏️</button>
+          <button class="dse-icon-btn del" onclick="window._dse.del(${p._i})" title="Удалить">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    overlay.innerHTML = `<div class="duty-modal">
+      <div class="dse-header">
+        <h3>📅 Расписание дежурств</h3>
+        <button class="dse-close" onclick="document.querySelector('.duty-modal-overlay').remove()">✕</button>
+      </div>
+      <div class="dse-list-wrap">
+        ${rows || '<div class="dse-empty">Нет периодов. Нажмите «+ Добавить».</div>'}
+        <button class="dse-add-btn" onclick="window._dse.newPeriod()">+ Добавить период</button>
+      </div>
+      <div class="dse-footer">
+        <button class="duty-modal-btn cancel" onclick="
+          if(confirm('Сбросить к встроенному расписанию?')){
+            localStorage.removeItem('duty_schedule_override');
+            document.querySelector('.duty-modal-overlay').remove();
+            renderDutyPanel(_lastClosedByAssignee,_lastCreatedByAssignee,_lastTodayStats,_lastChartData);
+          }">↩ Сбросить</button>
+        <div class="dse-footer-spacer"></div>
+        <button class="duty-modal-btn save" onclick="window._dse.save()">💾 Сохранить</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Рендер одного периода на редактирование ──
+  function renderEdit() {
+    const p = editPeriod;
+    const isWeek = p.type === 'week';
+
+    function staffRows(key) {
+      const arr = p[key] || [];
+      if (!arr.length) return `<div class="dse-staff-empty">Нет сотрудников</div>`;
+      return arr.map((person, pi) => `
+        <div class="dse-staff-row" data-key="${key}" data-pi="${pi}">
+          <input class="dse-name-input" list="dse-names-list"
+            value="${esc(person.name)}" placeholder="Начните вводить имя..."
+            oninput="if(window._dse._ep?.${key}?.[${pi}])window._dse._ep.${key}[${pi}].name=this.value">
+          <select class="dse-role-select"
+            onchange="if(window._dse._ep?.${key}?.[${pi}])window._dse._ep.${key}[${pi}].role=this.value">
+            ${ROLES.map(r=>roleOpt(r,person.role)).join('')}
+          </select>
+          <button class="dse-icon-btn del" onclick="window._dse.removePerson('${key}',${pi})" title="Убрать">×</button>
+        </div>`).join('');
+    }
+
+    function staffSection(key, label) {
+      return `<div class="dse-staff-section">
+        <div class="dse-staff-header">
+          <span>${label}</span>
+          <button class="dse-sm-btn" onclick="window._dse.addPerson('${key}')">+ Добавить</button>
+        </div>
+        <div id="dse-staff-${key}">${staffRows(key)}</div>
+      </div>`;
+    }
+
+    const staffArea = isWeek
+      ? staffSection('day','☀️ День') + staffSection('evening','🌙 Вечер')
+      : staffSection('duty','👤 Дежурный');
+
+    overlay.innerHTML = `<div class="duty-modal">
+      <div class="dse-header">
+        <button class="dse-back" onclick="window._dse.backToList()">← Назад</button>
+        <h3>${editingIdx===-1 ? '➕ Новый период' : '✏️ Редактирование периода'}</h3>
+        <button class="dse-close" onclick="document.querySelector('.duty-modal-overlay').remove()">✕</button>
+      </div>
+      <datalist id="dse-names-list">
+        ${KNOWN_NAMES.map(n=>`<option value="${esc(n)}">`).join('')}
+      </datalist>
+      <div class="dse-edit-wrap">
+        <div class="dse-row">
+          <div class="dse-field">
+            <label>Начало периода</label>
+            <input type="date" id="dse-from" class="dse-date-input" value="${p.from||''}"
+              onchange="if(window._dse._ep)window._dse._ep.from=this.value">
+          </div>
+          <div class="dse-field">
+            <label>Конец периода</label>
+            <input type="date" id="dse-to" class="dse-date-input" value="${p.to||''}"
+              onchange="if(window._dse._ep)window._dse._ep.to=this.value">
+          </div>
+        </div>
+        <div class="dse-field">
+          <label>Тип</label>
+          <div class="dse-type-toggle">
+            <button class="dse-type-btn ${isWeek?'active':''}" onclick="window._dse.setType('week')">🗓 Рабочая неделя</button>
+            <button class="dse-type-btn ${!isWeek?'active':''}" onclick="window._dse.setType('weekend')">🏖 Выходные / праздник</button>
+          </div>
+        </div>
+        <div id="dse-staff-area">${staffArea}</div>
+      </div>
+      <div class="dse-footer">
+        <button class="duty-modal-btn cancel" onclick="window._dse.backToList()">Отмена</button>
+        <div class="dse-footer-spacer"></div>
+        <button class="duty-modal-btn save" onclick="window._dse.applyPeriod()">✓ Применить</button>
+      </div>
+    </div>`;
+  }
+
+  // ── Обработчики ──
+  window._dse = {
+    _ep: null, // ссылка на editPeriod для inline-handlers
+    edit(i) {
+      editingIdx = i;
+      editPeriod = JSON.parse(JSON.stringify(schedule[i]));
+      this._ep = editPeriod;
+      renderEdit();
+    },
+    del(i) {
+      const p = schedule[i];
+      if (confirm(`Удалить период ${fmtDate(p.from)} — ${fmtDate(p.to)}?`)) {
+        schedule.splice(i, 1);
+        renderList();
+      }
+    },
+    newPeriod() {
+      editingIdx = -1;
+      editPeriod = { from:'', to:'', type:'week', day:[], evening:[] };
+      this._ep = editPeriod;
+      renderEdit();
+    },
+    backToList() {
+      editPeriod = null; this._ep = null; editingIdx = null;
+      renderList();
+    },
+    setType(type) {
+      syncDOM();
+      editPeriod.type = type;
+      if (type === 'week') {
+        if (!editPeriod.day) editPeriod.day = [];
+        if (!editPeriod.evening) editPeriod.evening = [];
+        delete editPeriod.duty;
+      } else {
+        if (!editPeriod.duty) editPeriod.duty = [];
+        delete editPeriod.day;
+        delete editPeriod.evening;
+      }
+      this._ep = editPeriod;
+      renderEdit();
+    },
+    addPerson(key) {
+      syncDOM();
+      if (!editPeriod[key]) editPeriod[key] = [];
+      editPeriod[key].push({ name:'', role:'standard' });
+      this._ep = editPeriod;
+      renderEdit();
+    },
+    removePerson(key, pi) {
+      syncDOM();
+      editPeriod[key].splice(pi, 1);
+      this._ep = editPeriod;
+      renderEdit();
+    },
+    applyPeriod() {
+      syncDOM();
+      if (!editPeriod.from || !editPeriod.to) {
+        alert('Укажите даты начала и конца периода'); return;
+      }
+      if (editPeriod.from > editPeriod.to) {
+        alert('Дата начала не может быть позже даты окончания'); return;
+      }
+      if (editingIdx === -1) {
+        schedule.push(JSON.parse(JSON.stringify(editPeriod)));
+        schedule.sort((a,b) => a.from.localeCompare(b.from));
+      } else {
+        schedule[editingIdx] = JSON.parse(JSON.stringify(editPeriod));
+      }
+      editPeriod = null; this._ep = null; editingIdx = null;
+      renderList();
+    },
+    save() {
+      localStorage.setItem('duty_schedule_override', JSON.stringify(schedule));
+      overlay.remove();
+      renderDutyPanel(_lastClosedByAssignee,_lastCreatedByAssignee,_lastTodayStats,_lastChartData);
+    }
+  };
+
+  renderList();
+}
+
+// Фетч задач созданных как автор (инициатор) — для колонки "Создал"
+async function fetchMonthCreatedAsAuthor() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const tasks = [];
+  let offset = 0;
+  while (true) {
+    const data = await pf('/task/list', {
+      offset, pageSize: 100,
+      fields: 'id,owner,initiator,author',
+      filters: [
+        { type: 51, operator: 'equal', value: SERVICE_TEMPLATES },
+        { type: 12, operator: 'equal', value: { dateType: 'otherRange', dateFrom: pfDate(monthStart), dateTo: pfDate(now) } },
+      ]
+    });
+    if (!data.tasks?.length) break;
+    if (offset === 0) console.log('[author] task fields:', Object.keys(data.tasks[0]), JSON.stringify(data.tasks[0]).slice(0,200));
+    tasks.push(...data.tasks);
+    if (data.tasks.length < 100) break;
+    offset += 100;
+  }
+  const byName = {};
+  for (const t of tasks) {
+    // Пробуем разные поля для автора
+    const author = t.owner || t.initiator || t.author;
+    const name = author?.name || author?.fullName;
+    if (name) byName[name] = (byName[name] || 0) + 1;
+  }
+  return byName;
+}
+
+function renderChart({ createdByDay, resolvedByDay }) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const MONTHS_NOM2 = ['январь','февраль','март','апрель','май','июнь',
+                       'июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+
+  const titleEl = document.getElementById('chart-title');
+  if (titleEl) titleEl.textContent = `Создано / Решено — ${MONTHS_NOM2[month]} ${year}`;
+
+  const DOW = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const fmtD = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const keys  = Array.from({length: today}, (_, i) => fmtD(new Date(year, month, i + 1)));
+  // Многострочные метки: ['Пн', '05-01']
+  const labels = keys.map(k => {
+    const d = new Date(k);
+    return [DOW[d.getDay()], k.slice(5)];
+  });
+
+  const createdData  = keys.map(k => createdByDay[k]  || 0);
+  const resolvedData = keys.map(k => resolvedByDay[k] || 0);
+
+  // Скрываем спиннер, показываем canvas
+  const loading = document.getElementById('chart-loading');
+  const canvas  = document.getElementById('month-chart-canvas');
+  if (loading) loading.style.display = 'none';
+  if (canvas)  canvas.style.display = 'block';
+
+  if (_monthChart) { _monthChart.destroy(); _monthChart = null; }
+
+  _monthChart = new Chart(canvas.getContext('2d'), {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Создано',
+          data: createdData,
+          backgroundColor: 'rgba(196,96,74,0.75)',
+          borderColor: '#C4604A',
+          borderWidth: 1,
+          borderRadius: 3,
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Решено',
+          data: resolvedData,
+          borderColor: '#5ABEAA',
+          backgroundColor: 'rgba(90,190,170,0.12)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#5ABEAA',
+          pointBorderColor: '#1a1d2e',
+          pointBorderWidth: 1.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.35,
+          fill: true,
+          order: 1,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1d2e',
+          titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0',
+          borderColor: '#2d3148',
+          borderWidth: 1,
+          padding: 10,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#2d3148' },
+          ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 45 },
+        },
+        y: {
+          grid: { color: '#2d3148' },
+          ticks: { color: '#64748b', font: { size: 10 } },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+async function loadAll(force = false) {
+  document.getElementById('error-area').innerHTML = '';
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+
+  // Проверяем кэш (если не принудительное обновление)
+  if (!force) {
+    const cached = cacheLoad();
+    if (cached) {
+      const ageMin = Math.round(cached.ageMs / 60000);
+      const { openTasks, serviceUsers, completedCount = 0, chartData, closedByAssignee = {}, createdByAssignee = {}, todayStats = { created: 0, resolved: 0 } } = cached.payload;
+      _cachedOpenTasks = openTasks;
+      _cachedServiceUsers = new Set(serviceUsers);
+      _lastCompletedCount = completedCount;
+      _lastClosedByAssignee = closedByAssignee;
+      _lastCreatedByAssignee = createdByAssignee;
+      buildUserIdMapFromTasks(openTasks); // нужно до рендера таблицы, чтобы isServiceMember работал
+      renderDashboard(openTasks, serviceUsers, completedCount, new Date(), true, ageMin, todayStats);
+      if (chartData) renderChart(chartData);
+      renderAssigneeTable(openTasks, new Set(serviceUsers), closedByAssignee, createdByAssignee, _lastTodayClosedByName, _lastDraftsByName);
+      renderDutyPanel(closedByAssignee, createdByAssignee, todayStats, chartData || null);
+      btn.disabled = false;
+      btn.textContent = 'Обновить';
+      // Загружаем статистику по сменам в фоне — сначала строим маппинг из закрытых задач
+      fetchMonthCompletedByAssignee().then(({ byName, taskIdToAssignee }) => {
+        _lastClosedByAssignee = byName; _lastTaskIdToAssignee = taskIdToAssignee;
+        return fetchAllDutyPeriodStats();
+      }).then(() => {
+        renderDutyPanel(_lastClosedByAssignee, _lastCreatedByAssignee);
+      }).catch(err => console.error('[period-stats cache] ошибка:', err));
+      fetchTodayClosedByExecutor().then(data => {
+        _lastTodayClosedByName = data;
+        renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, _lastClosedByAssignee, _lastCreatedByAssignee, data, _lastDraftsByName);
+      }).catch(err => console.error('[today-closed cache] ошибка:', err));
+      fetchDraftsByAssigner().then(data => {
+        _lastDraftsByName = data;
+        renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, _lastClosedByAssignee, _lastCreatedByAssignee, _lastTodayClosedByName, data);
+      }).catch(err => console.error('[drafts cache] ошибка:', err));
+      fetchMonthlyClientStats().then(tasks => {
+        renderClientPanel(tasks);
+      }).catch(err => console.error('[clients cache] ошибка:', err));
+      return;
+    }
+  }
+
+  btn.textContent = 'Загрузка...';
+
+  try {
+    // Основные данные — грузим параллельно и рендерим сразу
+    const [openTasks, serviceUsers, todayStats] = await Promise.all([
+      fetchOpenTasks(), fetchServiceUsers(), fetchTodayStats()
+    ]);
+    _cachedOpenTasks = openTasks;
+    _cachedServiceUsers = serviceUsers;
+    buildUserIdMapFromTasks(openTasks); // полные имена → ID из assignees задач
+
+    renderDashboard(openTasks, serviceUsers, '...', new Date(), false, 0, todayStats);
+    btn.disabled = false;
+    btn.textContent = 'Обновить';
+
+    // Фоновые фетчи — не блокируют рендер
+    let completedCount = '?', chartData = null, closedByAssignee = {}, createdByAssignee = {};
+
+    Promise.all([
+      fetchAllCompletedCount().then(c => {
+        completedCount = c;
+        _lastCompletedCount = c;
+        setKpiVal('kpi-completed', c);
+      }).catch(err => { console.error('[completed] ошибка:', err); setEl('kpi-completed', '?'); }),
+
+      fetchMonthChartData().then(data => {
+        chartData = data; _lastChartData = data;
+        renderChart(data);
+        // Используем _last* чтобы захватить assignee данные если они уже загрузились
+        renderDutyPanel(_lastClosedByAssignee, _lastCreatedByAssignee, todayStats, data);
+      }).catch(err => { console.error('[chart] ошибка:', err); setEl('day-chart', '<div class="loading">Ошибка загрузки</div>'); }),
+
+      fetchMonthCompletedByAssignee().then(({ byName, taskIdToAssignee }) => {
+        closedByAssignee = byName; _lastClosedByAssignee = byName;
+        _lastTaskIdToAssignee = taskIdToAssignee;
+        renderAssigneeTable(openTasks, serviceUsers, closedByAssignee, createdByAssignee, _lastTodayClosedByName, _lastDraftsByName);
+        renderDutyPanel(closedByAssignee, createdByAssignee);
+        // _serviceUserIdByName уже заполнен в fetchMonthCompletedByAssignee → строим периоды
+        fetchAllDutyPeriodStats().then(() => {
+          renderDutyPanel(_lastClosedByAssignee, _lastCreatedByAssignee);
+        }).catch(err => console.error('[period-stats] ошибка:', err));
+        // Загружаем фактическое время в фоне
+      }).catch(err => { console.error('[assignee-closed] ошибка:', err); }),
+
+      fetchMonthCreatedByAssignee().then(data => {
+        createdByAssignee = data; _lastCreatedByAssignee = data;
+        renderAssigneeTable(openTasks, serviceUsers, closedByAssignee, createdByAssignee, _lastTodayClosedByName, _lastDraftsByName);
+        renderDutyPanel(closedByAssignee, createdByAssignee);
+      }).catch(err => { console.error('[assignee-created] ошибка:', err); }),
+
+      fetchTodayClosedByExecutor().then(data => {
+        _lastTodayClosedByName = data;
+        renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, _lastClosedByAssignee, _lastCreatedByAssignee, data, _lastDraftsByName);
+      }).catch(err => { console.error('[today-closed] ошибка:', err); }),
+
+      fetchDraftsByAssigner().then(data => {
+        _lastDraftsByName = data;
+        renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, _lastClosedByAssignee, _lastCreatedByAssignee, _lastTodayClosedByName, data);
+      }).catch(err => { console.error('[drafts] ошибка:', err); }),
+
+      fetchAvgCloseTime().then(val => {
+        if (val !== null) setKpiVal('kpi-avg-close-val', val + ' дн.'); else setEl('kpi-avg-close-val', '—');
+      }).catch(() => setEl('kpi-avg-close-val', '—')),
+
+      fetchMonthlyClientStats().then(tasks => {
+        renderClientPanel(tasks);
+      }).catch(err => console.error('[clients] ошибка:', err)),
+
+    ]).then(() => {
+      cacheSave({ openTasks, serviceUsers: [...serviceUsers], completedCount, chartData, closedByAssignee, createdByAssignee, todayStats });
+    });
+
+  } catch (err) {
+    document.getElementById('error-area').innerHTML =
+      `<div class="error-msg">Ошибка загрузки: ${esc(err.message)}</div>`;
+    btn.disabled = false;
+    btn.textContent = 'Обновить';
+  }
+}
+
+// Initialize gridstack, then load data
+initGrid();
+initRefreshButtons();
+
+// ── Стаггерные задержки появления KPI-карточек ──
+document.querySelectorAll('.kpi-card').forEach((card, i) => {
+  card.style.animationDelay = `${i * 0.07}s`;
+});
+
+// Кэш последних данных для использования в частичных обновлениях
+let _cachedOpenTasks = [];
+let _cachedServiceUsers = new Set();
+
+loadAll();
+
+function assigneeSortBy(col) {
+  if (_assigneeSortCol === col) {
+    _assigneeSortDir = _assigneeSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    _assigneeSortCol = col;
+    _assigneeSortDir = 'desc';
+  }
+  if (_lastAssigneeArgs) renderAssigneeTable(..._lastAssigneeArgs);
+}
+
+function toggleAssigneeGroup(key) {
+  _assigneeGroupCollapsed[key] = !_assigneeGroupCollapsed[key];
+  if (_lastAssigneeArgs) renderAssigneeTable(..._lastAssigneeArgs);
+}
+
+// Добавляем кнопки ↻ к каждой карточке с data-refresh
+function initRefreshButtons() {
+  document.querySelectorAll('[data-refresh]').forEach(card => {
+    const group = card.dataset.refresh;
+    const btn = document.createElement('button');
+    btn.className = 'card-refresh-btn';
+    btn.title = 'Обновить';
+    btn.innerHTML = '<span class="btn-icon">↻</span>';
+    btn.onclick = (e) => { e.stopPropagation(); cardRefreshGroup(group, btn); };
+    // В KPI-карточках — вставляем в строку label рядом с иконкой ?
+    const label = card.querySelector('.label');
+    if (label) {
+      label.appendChild(btn);
+    } else {
+      card.appendChild(btn);
+    }
+  });
+}
+
+// Обновление по группе карточек
+async function cardRefreshGroup(group, btn) {
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+
+    if (group === 'open') {
+      // Все KPI завязанные на открытые задачи
+      const [openTasks, serviceUsers] = await Promise.all([fetchOpenTasks(), fetchServiceUsers()]);
+      _cachedOpenTasks = openTasks;
+      _cachedServiceUsers = serviceUsers;
+      renderDashboard(openTasks, serviceUsers, _lastCompletedCount, new Date(), false, 0, _lastTodayStats);
+
+    } else if (group === 'completed') {
+      setEl('kpi-completed', '…');
+      const count = await fetchAllCompletedCount();
+      _lastCompletedCount = count;
+      // обновляем значение + теги + footer
+      setKpiVal('kpi-completed', count);
+      const now = new Date();
+      const monthName = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][now.getMonth()];
+      const tag = (dot, label, bg, text) => `<span class="kpi-tag" style="background:${bg};color:${text};"><span class="kpi-tag-dot" style="background:${dot};"></span>${label}</span>`;
+      setEl('kpi-completed-tags', tag('#8AC87A', 'За ' + monthName + ' ' + now.getFullYear(), 'rgba(138,200,122,0.28)', '#A0DC8C'));
+      setEl('kpi-completed-footer', `<span>По дате фактического закрытия</span>`);
+
+    } else if (group === 'today') {
+      setEl('kpi-today-val', '…');
+      const stats = await fetchTodayStats();
+      _lastTodayStats = stats;
+      const tC = stats.created ?? 0, tR = stats.resolved ?? 0;
+      const tBal = tC - tR;
+      setEl('kpi-today-val', `${tC} / ${tR}`);
+      setEl('kpi-today-footer',
+        tBal > 0 ? `<span class="kpi-trend-down">▲ +${tBal} в очереди за день</span>`
+        : tBal < 0 ? `<span class="kpi-trend-up">▼ ${Math.abs(tBal)} сокращение очереди</span>`
+        : `<span class="kpi-trend-neu">= Баланс нулевой</span>`);
+      // Обновляем панель дежурства с новыми данными
+      renderDutyPanel(undefined, undefined, stats);
+
+    } else if (group === 'avgclose') {
+      setEl('kpi-avg-close-val', '…');
+      const val = await fetchAvgCloseTime();
+      setEl('kpi-avg-close-val', val !== null ? val + ' дн.' : '—');
+      const tag = (dot, label, bg, text) => `<span class="kpi-tag" style="background:${bg};color:${text};"><span class="kpi-tag-dot" style="background:${dot};"></span>${label}</span>`;
+      setEl('kpi-close-tags', tag('#86C0AC', 'За текущий месяц', 'rgba(134,192,172,0.15)', '#86C0AC'));
+      setEl('kpi-close-footer', `<span>Только задачи созданные и закрытые в этом месяце</span>`);
+
+    } else if (group === 'chart') {
+      setEl('day-chart', '<div class="loading"><span class="spinner"></span>Загрузка...</div>');
+      const canvas = document.getElementById('month-chart-canvas');
+      if (canvas) canvas.style.display = 'none';
+      const data = await fetchMonthChartData();
+      renderChart(data);
+
+    } else if (group === 'assignee') {
+      setEl('assignee-area', '<div class="loading"><span class="spinner"></span>Загрузка...</div>');
+      _lastTodayClosedByName = null; // сбрасываем чтобы показать спиннер
+      const [closedResult, created] = await Promise.all([
+        fetchMonthCompletedByAssignee(), fetchMonthCreatedByAssignee()
+      ]);
+      const { byName: closed, taskIdToAssignee } = closedResult;
+      _lastClosedByAssignee = closed; _lastCreatedByAssignee = created;
+      _lastTaskIdToAssignee = taskIdToAssignee;
+      renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, closed, created, null, null);
+      Promise.all([
+        fetchTodayClosedByExecutor().then(data => { _lastTodayClosedByName = data; return data; }).catch(() => null),
+        fetchDraftsByAssigner().then(data => { _lastDraftsByName = data; return data; }).catch(() => null),
+      ]).then(([today, drafts]) => {
+        renderAssigneeTable(_cachedOpenTasks, _cachedServiceUsers, _lastClosedByAssignee, _lastCreatedByAssignee, today, drafts);
+      });
+
+    } else if (group === 'duty') {
+      setEl('duty-area', '<div class="loading"><span class="spinner"></span>Загрузка...</div>');
+      _periodStats = {};
+      const [closedResult, created] = await Promise.all([
+        fetchMonthCompletedByAssignee(), fetchMonthCreatedByAssignee(),
+      ]);
+      await fetchAllDutyPeriodStats();
+      const { byName: closed, taskIdToAssignee } = closedResult;
+      _lastClosedByAssignee = closed; _lastCreatedByAssignee = created;
+      _lastTaskIdToAssignee = taskIdToAssignee;
+      renderDutyPanel(closed, created);
+
+    } else if (group === 'clients') {
+      setEl('clients-area', '<div class="loading"><span class="spinner"></span>Загрузка...</div>');
+      const tasks = await fetchMonthlyClientStats();
+      renderClientPanel(tasks);
+    }
+
+  } catch(e) {
+    console.error('[cardRefresh] ошибка:', e);
+  }
+  btn.classList.remove('spinning');
+  btn.disabled = false;
+}
+
+// Resize Chart.js when gridstack panel resizes
+document.getElementById('main-grid').addEventListener('gsresizestop', () => {
+  if (_monthChart) _monthChart.resize();
+});
+
+// Позиционирование тултипов через fixed — никогда не расширяет страницу
+document.addEventListener('mouseover', (e) => {
+  const container = e.target.closest('.duty-hint, .th-hint');
+  if (!container) return;
+  const popup = container.querySelector('.duty-hint-popup, .th-hint-popup');
+  if (!popup) return;
+
+  const tr = container.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const margin = 8;
+
+  // Ширина попапа из CSS или дефолт
+  const pw = parseInt(getComputedStyle(popup).width) || 220;
+
+  // Горизонталь: от левого края иконки, но не выходим за правый край
+  let left = tr.left;
+  if (left + pw > vw - margin) left = Math.max(margin, tr.right - pw);
+
+  // Вертикаль: над иконкой (для duty-hint) или под иконкой (для th-hint)
+  const isDuty = !!container.closest('.duty-hint');
+  let top;
+  if (isDuty) {
+    // Над иконкой — сначала оцениваем примерную высоту
+    const ph = popup.offsetHeight || 80;
+    top = tr.top - ph - 8;
+    if (top < margin) top = tr.bottom + 8; // если не влезает сверху — под иконкой
+  } else {
+    top = tr.bottom + 8;
+    // Если не влезает снизу — над иконкой
+    const ph = popup.offsetHeight || 80;
+    if (top + ph > window.innerHeight - margin) top = tr.top - ph - 8;
+  }
+
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+  popup.style.right = 'auto';
+  popup.style.bottom = 'auto';
+});
+</script>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-brand">Реста</span>
+    <span class="footer-sep">·</span>
+    <span>Сервисная поддержка</span>
+    <span class="footer-sep">·</span>
+    <span>Дашборд качества обслуживания</span>
+  </div>
+</footer>
+</body>
+</html>

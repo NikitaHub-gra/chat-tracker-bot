@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chat-tracker",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "src.main:app", "--port", "8130"],
+      "port": 8130
+    }
+  ]
+}
