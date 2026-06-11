@@ -116,6 +116,7 @@
 <main>
   <div class="tabs" id="main-tabs">
     <button class="tab-btn active" data-tab="access" onclick="switchTab('access')">Доступ и права</button>
+    <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">Заявки <span id="requests-badge" style="display:none;background:#E8935A;color:#1a1208;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px;vertical-align:middle;"></span></button>
     <button class="tab-btn" data-tab="bot" onclick="switchTab('bot')">Мессенджеры</button>
     <button class="tab-btn" data-tab="hub" onclick="switchTab('hub')">Общие настройки</button>
   </div>
@@ -146,6 +147,22 @@
         <tr><th>Пользователь</th><th>Telegram ID</th><th>Роль</th><th>Доступ к разделам</th><th>Последний вход</th><th></th></tr>
       </thead>
       <tbody id="users-body">
+        <tr><td colspan="6" class="muted">Загрузка...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Tab: Заявки на доступ ── -->
+  <div class="tab-panel" id="tab-requests">
+    <h1>Заявки на доступ</h1>
+    <div class="desc">
+      Сотрудники, которые попытались войти, но не были добавлены администратором. Одобрите или отклоните каждую заявку.
+    </div>
+    <table id="requests-table">
+      <thead>
+        <tr><th>Имя</th><th>Telegram ID</th><th>Username</th><th>Дата заявки</th><th>Роль при одобрении</th><th></th></tr>
+      </thead>
+      <tbody id="requests-body">
         <tr><td colspan="6" class="muted">Загрузка...</td></tr>
       </tbody>
     </table>
@@ -232,6 +249,94 @@
     document.querySelectorAll('#main-tabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${tab}`));
     if (tab === 'hub') loadHubSettings();
+    if (tab === 'requests') loadRequests();
+  }
+
+  // ── Pending registration requests ──
+  let requests = [];
+
+  async function loadRequests() {
+    const r = await fetch('/api/dashboard/auth/pending-requests').then(r => r.json());
+    if (!r.success) {
+      document.getElementById('requests-body').innerHTML = `<tr><td colspan="6" class="muted">Ошибка загрузки</td></tr>`;
+      return;
+    }
+    requests = r.requests || [];
+    renderRequests();
+    const badge = document.getElementById('requests-badge');
+    if (requests.length > 0) {
+      badge.textContent = requests.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function renderRequests() {
+    const tbody = document.getElementById('requests-body');
+    if (!requests.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="muted" style="text-align:center;padding:24px;">Нет новых заявок</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = requests.map(req => {
+      const name = [req.firstName, req.lastName].filter(Boolean).join(' ') || '—';
+      const username = req.username ? '@' + req.username : '—';
+      return `
+        <tr id="req-row-${req.id}">
+          <td>${esc(name)}</td>
+          <td style="font-family:monospace;color:#94a3b8;">${req.telegramId}</td>
+          <td class="muted">${esc(username)}</td>
+          <td class="muted">${fmtDate(req.requestedAt)}</td>
+          <td>
+            <select id="req-role-${req.id}" style="padding:4px 8px;font-size:12px;">
+              <option value="engineer">Инженер</option>
+              <option value="service_admin">Сервис-админ</option>
+              <option value="admin">Админ хаба</option>
+            </select>
+          </td>
+          <td style="display:flex;gap:8px;align-items:center;">
+            <button onclick="approveRequest(${req.id})" style="background:#0d2a1f;color:#00d06b;padding:6px 14px;font-size:12px;">✓ Одобрить</button>
+            <button class="danger" onclick="rejectRequest(${req.id})">✗ Отклонить</button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function approveRequest(id) {
+    const role = document.getElementById(`req-role-${id}`)?.value || 'engineer';
+    const r = await fetch(`/api/dashboard/auth/pending-requests/${id}/approve`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    }).then(r => r.json());
+    if (r.success) {
+      requests = requests.filter(r => r.id !== id);
+      renderRequests();
+      updateRequestsBadge();
+      loadUsers(); // refresh users list
+    }
+  }
+
+  async function rejectRequest(id) {
+    if (!confirm('Отклонить заявку?')) return;
+    const r = await fetch(`/api/dashboard/auth/pending-requests/${id}/reject`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).then(r => r.json());
+    if (r.success) {
+      requests = requests.filter(r => r.id !== id);
+      renderRequests();
+      updateRequestsBadge();
+    }
+  }
+
+  function updateRequestsBadge() {
+    const badge = document.getElementById('requests-badge');
+    if (requests.length > 0) {
+      badge.textContent = requests.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 
   function switchBotTab(sub) {
@@ -408,6 +513,8 @@
   }
 
   loadUsers();
+  // Pre-load request count so badge shows on page load
+  loadRequests();
 </script>
 </body>
 </html>

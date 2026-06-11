@@ -85,14 +85,38 @@
     <button class="secondary" onclick="backToId()">← Изменить ID</button>
     <div class="status" id="status-code"></div>
   </div>
+
+  <!-- Step 3: request access -->
+  <div class="step" id="step-request">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:28px;margin-bottom:8px;">🔐</div>
+      <div style="font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:6px;">Доступ не предоставлен</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.6;" id="request-hint">
+        Ваш Telegram ID не добавлен в систему.<br>Вы можете отправить заявку на доступ.
+      </div>
+    </div>
+    <div id="request-form">
+      <label>Ваше имя (необязательно)</label>
+      <input id="req-name" type="text" placeholder="Иванов Иван" />
+      <div class="hint">Заявка будет рассмотрена администратором.</div>
+      <button id="btn-request-access" onclick="submitAccessRequest()">Отправить заявку на доступ</button>
+    </div>
+    <button class="secondary" onclick="backToId()">← Назад</button>
+    <div class="status" id="status-request"></div>
+  </div>
 </div>
 
 <script>
   let currentTelegramId = null;
+  let pendingProfile = {};
 
-  // Restore last used ID for convenience
   const savedId = localStorage.getItem('hub_telegram_id');
   if (savedId) document.getElementById('telegram-id').value = savedId;
+
+  function showStep(name) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + name).classList.add('active');
+  }
 
   async function requestCode() {
     const idInput = document.getElementById('telegram-id');
@@ -111,8 +135,7 @@
       if (!r.success) throw new Error(r.error || 'Не удалось отправить код');
       currentTelegramId = id;
       localStorage.setItem('hub_telegram_id', id);
-      document.getElementById('step-id').classList.remove('active');
-      document.getElementById('step-code').classList.add('active');
+      showStep('code');
       document.getElementById('code').focus();
     } catch (e) {
       status.textContent = '✗ ' + e.message;
@@ -135,10 +158,33 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegramId: currentTelegramId, code }),
       }).then(r => r.json());
-      if (!r.success) throw new Error(r.error || 'Ошибка входа');
-      status.textContent = '✓ Успешно! Перенаправляем...';
-      status.className = 'status ok';
-      setTimeout(() => location.href = '/hub.html', 500);
+
+      if (r.success) {
+        status.textContent = '✓ Успешно! Перенаправляем...';
+        status.className = 'status ok';
+        setTimeout(() => location.href = '/hub.html', 500);
+        return;
+      }
+
+      if (r.error === 'not_registered') {
+        pendingProfile = r.profile || {};
+        const hint = document.getElementById('request-hint');
+        if (r.hasPendingRequest) {
+          hint.innerHTML = 'Ваша заявка на доступ уже отправлена и ожидает рассмотрения администратором.';
+          document.getElementById('request-form').style.display = 'none';
+        } else {
+          hint.innerHTML = 'Ваш Telegram ID не добавлен в систему.<br>Вы можете отправить заявку на доступ администратору.';
+          document.getElementById('request-form').style.display = '';
+          // Pre-fill name if available from profile
+          if (pendingProfile.firstName) {
+            document.getElementById('req-name').value = [pendingProfile.firstName, pendingProfile.lastName].filter(Boolean).join(' ');
+          }
+        }
+        showStep('request');
+        return;
+      }
+
+      throw new Error(r.error || 'Ошибка входа');
     } catch (e) {
       status.textContent = '✗ ' + e.message;
       status.className = 'status err';
@@ -147,10 +193,41 @@
     }
   }
 
+  async function submitAccessRequest() {
+    const btn = document.getElementById('btn-request-access');
+    const status = document.getElementById('status-request');
+    const nameVal = document.getElementById('req-name').value.trim();
+    const parts = nameVal.split(' ').filter(Boolean);
+    const firstName = parts[0] || pendingProfile.firstName || null;
+    const lastName = parts.slice(1).join(' ') || pendingProfile.lastName || null;
+
+    btn.disabled = true; btn.textContent = 'Отправка...';
+    status.textContent = ''; status.className = 'status';
+    try {
+      const r = await fetch('/api/dashboard/auth/request-access', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegramId: currentTelegramId,
+          username: pendingProfile.username || null,
+          firstName,
+          lastName,
+        }),
+      }).then(r => r.json());
+      if (!r.success && r.error !== 'already_registered') throw new Error(r.error || 'Ошибка');
+      document.getElementById('request-form').style.display = 'none';
+      document.getElementById('request-hint').innerHTML = '✓ Заявка отправлена! Администратор рассмотрит её и свяжется с вами.';
+      status.textContent = '';
+    } catch (e) {
+      status.textContent = '✗ ' + e.message;
+      status.className = 'status err';
+      btn.disabled = false; btn.textContent = 'Отправить заявку на доступ';
+    }
+  }
+
   function backToId() {
-    document.getElementById('step-code').classList.remove('active');
-    document.getElementById('step-id').classList.add('active');
+    showStep('id');
     document.getElementById('status-code').textContent = '';
+    document.getElementById('status-request').textContent = '';
   }
 </script>
 </body>

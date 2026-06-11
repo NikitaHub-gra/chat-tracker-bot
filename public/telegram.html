@@ -571,6 +571,57 @@
         border-color: #f59e0b;
       }
 
+      /* ── Звонки: фильтры и таблица ── */
+      .calls-filters {
+        background: #1a1d2e; border: none; border-radius: 10px;
+        padding: 14px 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;
+        margin-bottom: 14px;
+      }
+      .calls-filters .filter-group { display: flex; flex-direction: column; gap: 5px; }
+      .calls-filters .filter-group label {
+        font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b;
+      }
+      .calls-filters .filter-group select, .calls-filters .filter-group input {
+        background: #0f1117; border: none; border-radius: 6px;
+        color: #e2e8f0; padding: 7px 10px; font-size: 13px; font-family: inherit;
+        min-width: 150px;
+      }
+      .calls-filters .filter-group select:focus, .calls-filters .filter-group input:focus {
+        outline: none; box-shadow: 0 0 0 1px #E8935A;
+      }
+      .calls-filter-btn {
+        background: rgba(59,79,216,0.12); border: none; color: #93a8f4;
+        padding: 8px 18px; border-radius: 6px; cursor: pointer;
+        font-size: 12px; font-weight: 700; transition: background 0.15s;
+      }
+      .calls-filter-btn:hover { background: rgba(59,79,216,0.22); }
+      .calls-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .calls-table th {
+        text-align: left; padding: 8px 18px; font-size: 10px;
+        text-transform: uppercase; letter-spacing: 0.06em; color: #64748b;
+        border-bottom: 1px solid #1e2235; white-space: nowrap;
+      }
+      .calls-table td { padding: 9px 18px; border-bottom: 1px solid #1e2235; vertical-align: middle; }
+      .calls-table tr:hover td { background: rgba(255,255,255,0.02); }
+      .calls-table tr:last-child td { border-bottom: none; }
+      .dir-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
+      }
+      .dir-in  { background: rgba(0,208,107,0.1); color: #00D06B; }
+      .dir-out { background: rgba(41,121,255,0.1); color: #2979FF; }
+      .dir-unknown { background: #2d3148; color: #64748b; }
+      .status-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
+      }
+      .status-success  { background: rgba(0,208,107,0.1); color: #00D06B; }
+      .status-missed, .status-noanswer, .status-busy, .status-notavailable {
+        background: rgba(255,23,68,0.12); color: #FF1744;
+      }
+      .rec-link { color: #93a8f4; text-decoration: none; font-size: 12px; }
+      .rec-link:hover { color: #E8935A; }
+
       /* ── Warning banner ── */
       .warning-banner {
         background: rgba(255, 229, 96, 0.06);
@@ -1774,7 +1825,7 @@
           <div class="dot"></div>
           <span id="status-text">Live</span>
         </div>
-        <button class="refresh-btn" onclick="loadAll()">↻ Обновить</button>
+        <button class="refresh-btn" onclick="loadAll(); if (currentMessenger === 'max') loadMaxAll(); if (currentMessenger === 'calls') loadCallsAll();">↻ Обновить</button>
         <button
           class="refresh-btn"
           onclick="downloadExcel()"
@@ -3332,6 +3383,19 @@
         >
           📨 MAX
         </button>
+        <button
+          class="qf-btn"
+          data-msgr="calls"
+          onclick="setMessenger(this, 'calls')"
+          style="
+            font-size: 13px;
+            padding: 7px 18px;
+            color: #E8935A;
+            border-color: rgba(232, 147, 90, 0.3);
+          "
+        >
+          📞 Звонки
+        </button>
       </div>
 
       <div id="view-telegram">
@@ -3960,6 +4024,106 @@
         </div>
       </div>
       <!-- /view-max -->
+
+      <!-- ══ Звонки (МегаПБХ) view ══ -->
+      <div id="view-calls" style="display:none;">
+
+        <div class="calls-filters">
+          <div class="filter-group">
+            <label>С даты</label>
+            <input type="date" id="calls-f-from">
+          </div>
+          <div class="filter-group">
+            <label>По дату</label>
+            <input type="date" id="calls-f-to">
+          </div>
+          <div class="filter-group">
+            <label>Сотрудник</label>
+            <select id="calls-f-ext">
+              <option value="">Все</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Статус</label>
+            <select id="calls-f-status">
+              <option value="">Все</option>
+              <option value="Success">Успешно</option>
+              <option value="Missed">Пропущен</option>
+              <option value="Busy">Занято</option>
+              <option value="NotAvailable">Недоступен</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Поиск (телефон/имя)</label>
+            <input type="text" id="calls-f-search" placeholder="79991234567 или Иванов">
+          </div>
+          <button class="calls-filter-btn" onclick="loadCallsAll()">Применить</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="kpi-card pantone-amber" style="animation-delay:0.04s">
+            <div class="kpi-card-top">
+              <div class="kpi-label">Всего звонков</div>
+              <span class="kpi-emoji">📞</span>
+            </div>
+            <div class="kpi-value" id="calls-kpi-total">—</div>
+          </div>
+          <div class="kpi-card pantone-teal" style="animation-delay:0.09s">
+            <div class="kpi-card-top">
+              <div class="kpi-label">Входящих</div>
+              <span class="kpi-emoji">📥</span>
+            </div>
+            <div class="kpi-value" id="calls-kpi-incoming">—</div>
+          </div>
+          <div class="kpi-card pantone-blue" style="animation-delay:0.14s">
+            <div class="kpi-card-top">
+              <div class="kpi-label">Исходящих</div>
+              <span class="kpi-emoji">📤</span>
+            </div>
+            <div class="kpi-value" id="calls-kpi-outgoing">—</div>
+          </div>
+          <div class="kpi-card pantone-red" style="animation-delay:0.19s">
+            <div class="kpi-card-top">
+              <div class="kpi-label">Пропущено</div>
+              <span class="kpi-emoji">⚠️</span>
+            </div>
+            <div class="kpi-value" id="calls-kpi-missed">—</div>
+          </div>
+          <div class="kpi-card pantone-gold" style="animation-delay:0.24s">
+            <div class="kpi-card-top">
+              <div class="kpi-label">Общая длительность</div>
+              <span class="kpi-emoji">⏱️</span>
+            </div>
+            <div class="kpi-value" id="calls-kpi-duration">—</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px;">
+          <div class="panel-header">
+            <div class="panel-title">История звонков <span class="panel-count" id="calls-count">0</span></div>
+          </div>
+          <div class="panel-body" style="overflow-x:auto;">
+            <table class="calls-table">
+              <thead>
+                <tr>
+                  <th>Дата / время</th>
+                  <th>Направление</th>
+                  <th>Телефон</th>
+                  <th>Сотрудник</th>
+                  <th>Длительность</th>
+                  <th>Статус</th>
+                  <th>Запись</th>
+                </tr>
+              </thead>
+              <tbody id="calls-body">
+                <tr><td colspan="7" class="empty-state">Загрузка…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <!-- /view-calls -->
     </div>
 
     <footer>
@@ -4581,7 +4745,143 @@
           messenger === "telegram" ? "" : "none";
         document.getElementById("view-max").style.display =
           messenger === "max" ? "" : "none";
+        document.getElementById("view-calls").style.display =
+          messenger === "calls" ? "" : "none";
         if (messenger === "max") loadMaxAll();
+        if (messenger === "calls") loadCallsAll();
+      }
+
+      // ── Звонки (МегаПБХ) ────────────────────────────────────────────────
+      const CALLS_DIRECTION_LABELS = {
+        incoming: { label: "Входящий",  cls: "dir-in" },
+        in:       { label: "Входящий",  cls: "dir-in" },
+        outgoing: { label: "Исходящий", cls: "dir-out" },
+        out:      { label: "Исходящий", cls: "dir-out" },
+      };
+      const CALLS_STATUS_LABELS = {
+        Success:      { label: "Успешно",    cls: "status-success" },
+        success:      { label: "Успешно",    cls: "status-success" },
+        answered:     { label: "Успешно",    cls: "status-success" },
+        Missed:       { label: "Пропущен",   cls: "status-missed" },
+        missed:       { label: "Пропущен",   cls: "status-missed" },
+        Busy:         { label: "Занято",     cls: "status-busy" },
+        busy:         { label: "Занято",     cls: "status-busy" },
+        NoAnswer:     { label: "Нет ответа", cls: "status-noanswer" },
+        noanswer:     { label: "Нет ответа", cls: "status-noanswer" },
+        NotAvailable: { label: "Недоступен", cls: "status-notavailable" },
+        NotAllowed:   { label: "Запрещён",   cls: "status-notavailable" },
+      };
+      let callsEmployeesLoaded = false;
+
+      function callsFmtDuration(sec) {
+        if (!sec) return "—";
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}:${String(s).padStart(2, "0")}`;
+      }
+      function callsFmtDate(ts) {
+        if (!ts) return "—";
+        return new Date(ts).toLocaleString("ru-RU", {
+          day: "2-digit", month: "2-digit", year: "2-digit",
+          hour: "2-digit", minute: "2-digit",
+        });
+      }
+      function callsPopValue(el, value) {
+        if (!el) return;
+        el.textContent = value;
+        el.classList.remove("kpi-value-pop");
+        void el.offsetWidth;
+        el.classList.add("kpi-value-pop");
+      }
+      function callsLocalDateStr(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      }
+      async function loadCallsEmployees() {
+        if (callsEmployeesLoaded) return;
+        try {
+          const r = await fetch(`${API}/api/dashboard/megapbx/employees`).then(r => r.json());
+          const sel = document.getElementById("calls-f-ext");
+          sel.innerHTML = '<option value="">Все</option>';
+          (r.employees || []).filter(e => e.ext).sort((a, b) => a.name.localeCompare(b.name, "ru")).forEach(e => {
+            const opt = document.createElement("option");
+            opt.value = e.ext;
+            opt.textContent = `${e.name} (${e.ext})`;
+            sel.appendChild(opt);
+          });
+          callsEmployeesLoaded = true;
+        } catch (e) { console.error(e); }
+      }
+      function callsBuildQuery() {
+        const params = new URLSearchParams();
+        const from = document.getElementById("calls-f-from").value;
+        const to = document.getElementById("calls-f-to").value;
+        const ext = document.getElementById("calls-f-ext").value;
+        const status = document.getElementById("calls-f-status").value;
+        const search = document.getElementById("calls-f-search").value.trim();
+        if (from) params.set("from", new Date(from + "T00:00:00").getTime());
+        if (to)   params.set("to",   new Date(to   + "T23:59:59").getTime());
+        if (ext)    params.set("ext",    ext);
+        if (status) params.set("status", status);
+        if (search) params.set("search", search);
+        return params.toString();
+      }
+      async function loadCallsStats(qs) {
+        try {
+          const r = await fetch(`${API}/api/dashboard/megapbx/stats?` + qs).then(r => r.json());
+          if (!r.success) return;
+          const s = r.stats;
+          callsPopValue(document.getElementById("calls-kpi-total"),    s.total);
+          callsPopValue(document.getElementById("calls-kpi-incoming"), s.incoming);
+          callsPopValue(document.getElementById("calls-kpi-outgoing"), s.outgoing);
+          callsPopValue(document.getElementById("calls-kpi-missed"),   s.missed);
+          const h = Math.floor(s.totalDurationSec / 3600);
+          const m = Math.floor((s.totalDurationSec % 3600) / 60);
+          callsPopValue(document.getElementById("calls-kpi-duration"), `${h} ч ${m} мин`);
+        } catch (e) { console.error(e); }
+      }
+      async function loadCallsList(qs) {
+        const tbody = document.getElementById("calls-body");
+        try {
+          const r = await fetch(`${API}/api/dashboard/megapbx/calls?` + qs).then(r => r.json());
+          if (!r.success || !r.calls.length) {
+            document.getElementById("calls-count").textContent = "0";
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Звонков не найдено. Если интеграция только настроена — данные появятся после первых звонков.</td></tr>';
+            return;
+          }
+          document.getElementById("calls-count").textContent = r.calls.length;
+          tbody.innerHTML = r.calls.map(c => {
+            const dir    = CALLS_DIRECTION_LABELS[c.direction] || { label: c.direction || "—", cls: "dir-unknown" };
+            const status = CALLS_STATUS_LABELS[c.status]       || { label: c.status    || "—", cls: "status-unknown" };
+            const ts = c.lastEventAt || c.createdAt;
+            return `
+              <tr>
+                <td>${callsFmtDate(ts)}</td>
+                <td><span class="dir-badge ${dir.cls}">${dir.label}</span></td>
+                <td>${c.phone || "—"}</td>
+                <td>${c.employee || (c.ext ? `Доб. ${c.ext}` : "—")}</td>
+                <td>${callsFmtDuration(c.duration)}</td>
+                <td><span class="status-badge ${status.cls}">${status.label}</span></td>
+                <td>${c.recordLink ? `<a class="rec-link" href="${c.recordLink}" target="_blank">▶ Слушать</a>` : "—"}</td>
+              </tr>`;
+          }).join("");
+        } catch (e) {
+          console.error(e);
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Ошибка загрузки</td></tr>';
+        }
+      }
+      async function loadCallsAll() {
+        loadCallsEmployees();
+        if (!document.getElementById("calls-f-from").value) {
+          const to = new Date();
+          const from = new Date(Date.now() - 7 * 86400000);
+          document.getElementById("calls-f-to").value   = callsLocalDateStr(to);
+          document.getElementById("calls-f-from").value = callsLocalDateStr(from);
+        }
+        const qs = callsBuildQuery();
+        await Promise.all([loadCallsStats(qs), loadCallsList(qs)]);
       }
 
       function setMaxQueueFilter(btn) {

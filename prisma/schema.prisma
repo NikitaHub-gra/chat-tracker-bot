@@ -308,3 +308,15 @@ model NotifSnooze {
   chatId       String @id
   snoozedUntil Int
 }
+
+model RegistrationRequest {
+  id          Int      @id @default(autoincrement())
+  telegramId  Int      @unique
+  username    String?
+  firstName   String?
+  lastName    String?
+  status      String   @default("pending")  // pending | approved | rejected
+  requestedAt Int
+  reviewedAt  Int?
+  reviewedBy  Int?                           // HubUser.id of reviewer
+}

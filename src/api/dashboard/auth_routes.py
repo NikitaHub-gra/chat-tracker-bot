@@ -18,6 +18,9 @@ import httpx
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 
+import time as _time
+
+from src.database.db import db
 from src.services.auth_service import (
     create_login_code, verify_login_code, get_session_user, destroy_session,
     list_users, add_user, set_user_role, set_user_permissions, delete_user,
@@ -112,7 +115,12 @@ async def verify(request: Request, response: Response):
     result = await verify_login_code(telegram_id, code, profile)
     if not result["ok"]:
         if result.get("error") == "not_registered":
-            return {"success": False, "error": "Ваш Telegram ID не добавлен администратором хаба. Обратитесь к администратору."}
+            # Check if there is already a pending request
+            existing = await db.registrationrequest.find_unique(where={"telegramId": telegram_id})
+            if existing and existing.status == "pending":
+                return {"success": False, "error": "not_registered", "hasPendingRequest": True}
+            return {"success": False, "error": "not_registered", "hasPendingRequest": False,
+                    "profile": profile}
         return {"success": False, "error": result["error"]}
 
     # Set session cookie
@@ -260,3 +268,126 @@ async def update_hub_settings(request: Request):
     }
     await set_setting("hub_general", next_settings)
     return {"success": True, "settings": next_settings}
+
+
+# ── Registration Requests ─────────────────────────────────────────────────────────
+
+@router.post("/request-access")
+async def request_access(request: Request):
+    """Submit a registration request. Anyone can call this (no auth required)."""
+    body = await request.json()
+    telegram_id = body.get("telegramId")
+    if not telegram_id:
+        return {"success": False, "error": "telegramId required"}
+    telegram_id = int(telegram_id)
+
+    # Don't allow if already a user
+    from src.services.auth_service import get_user_by_telegram_id
+    existing_user = await get_user_by_telegram_id(telegram_id)
+    if existing_user:
+        return {"success": False, "error": "already_registered"}
+
+    now = int(_time.time())
+    username  = (body.get("username")  or "").strip() or None
+    first_name = (body.get("firstName") or "").strip() or None
+    last_name  = (body.get("lastName")  or "").strip() or None
+
+    await db.registrationrequest.upsert(
+        where={"telegramId": telegram_id},
+        data={
+            "create": {
+                "telegramId": telegram_id,
+                "username": username,
+                "firstName": first_name,
+                "lastName": last_name,
+                "status": "pending",
+                "requestedAt": now,
+            },
+            "update": {
+                "username": username,
+                "firstName": first_name,
+                "lastName": last_name,
+                "status": "pending",
+                "requestedAt": now,
+                "reviewedAt": None,
+                "reviewedBy": None,
+            },
+        }
+    )
+    return {"success": True}
+
+
+@router.get("/pending-requests")
+async def get_pending_requests(request: Request):
+    """List registration requests (admin only)."""
+    user = await get_session_user(request.cookies.get(SESSION_COOKIE))
+    if not user or user.role != "admin":
+        return JSONResponse({"success": False, "error": "forbidden"}, status_code=403)
+    reqs = await db.registrationrequest.find_many(
+        where={"status": "pending"},
+        order={"requestedAt": "asc"},
+    )
+    return {
+        "success": True,
+        "requests": [
+            {
+                "id": r.id,
+                "telegramId": r.telegramId,
+                "username": r.username,
+                "firstName": r.firstName,
+                "lastName": r.lastName,
+                "requestedAt": r.requestedAt,
+            }
+            for r in reqs
+        ],
+    }
+
+
+@router.post("/pending-requests/{req_id}/approve")
+async def approve_request(req_id: int, request: Request):
+    """Approve a registration request — creates an engineer account."""
+    user = await get_session_user(request.cookies.get(SESSION_COOKIE))
+    if not user or user.role != "admin":
+        return JSONResponse({"success": False, "error": "forbidden"}, status_code=403)
+    req = await db.registrationrequest.find_unique(where={"id": req_id})
+    if not req:
+        return {"success": False, "error": "not found"}
+
+    body = await request.json()
+    role = _normalize_role(body.get("role", "engineer"))
+
+    # Create the hub user
+    await add_user(req.telegramId, role, first_name=req.firstName)
+
+    # Update username/lastName if available
+    from src.services.auth_service import get_user_by_telegram_id
+    created = await get_user_by_telegram_id(req.telegramId)
+    if created and (req.username or req.lastName):
+        update_data = {}
+        if req.username:
+            update_data["username"] = req.username
+        if req.lastName:
+            update_data["lastName"] = req.lastName
+        if update_data:
+            await db.hubuser.update(where={"id": created.id}, data=update_data)
+
+    now = int(_time.time())
+    await db.registrationrequest.update(
+        where={"id": req_id},
+        data={"status": "approved", "reviewedAt": now, "reviewedBy": user.id},
+    )
+    return {"success": True}
+
+
+@router.post("/pending-requests/{req_id}/reject")
+async def reject_request(req_id: int, request: Request):
+    """Reject a registration request."""
+    user = await get_session_user(request.cookies.get(SESSION_COOKIE))
+    if not user or user.role != "admin":
+        return JSONResponse({"success": False, "error": "forbidden"}, status_code=403)
+    now = int(_time.time())
+    await db.registrationrequest.update(
+        where={"id": req_id},
+        data={"status": "rejected", "reviewedAt": now, "reviewedBy": user.id},
+    )
+    return {"success": True}
