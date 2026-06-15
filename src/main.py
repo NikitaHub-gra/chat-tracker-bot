@@ -212,10 +212,12 @@ async def on_startup():
 
         # Auto-setup webhook if BASE_URL is configured
         if settings.BASE_URL:
-            import httpx
+            import httpx, os as _os
+            _proxy = _os.getenv("TG_PROXY")
             webhook_url = f"{settings.BASE_URL.rstrip('/')}/webhook/tg"
             try:
-                async with httpx.AsyncClient() as client:
+                _client_kwargs = {"proxy": _proxy, "timeout": 15} if _proxy else {"timeout": 15}
+                async with httpx.AsyncClient(**_client_kwargs) as client:
                     r = await client.post(
                         f"https://api.telegram.org/bot{tg_token}/setWebhook",
                         json={
