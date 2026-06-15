@@ -835,6 +835,12 @@ async def get_report_week():
     }
 
 
+def _tg_client():
+    import os, httpx
+    proxy = os.getenv("TG_PROXY")
+    return httpx.AsyncClient(proxy=proxy, timeout=15) if proxy else httpx.AsyncClient(timeout=15)
+
+
 # ── Bot Config ───────────────────────────────────────────────
 
 @router.get("/bot-config")
@@ -845,19 +851,13 @@ async def get_bot_config():
     username = None
     if token:
         try:
-            import httpx
-            async with httpx.AsyncClient() as client:
+            async with _tg_client() as client:
                 r = await client.get(f"https://api.telegram.org/bot{token}/getMe")
                 info = r.json()
                 username = info.get("result", {}).get("username")
         except Exception:
             pass
     return {"success": True, "masked": masked, "username": username, "ok": bool(username)}
-
-def _tg_client():
-    import os, httpx
-    proxy = os.getenv("TG_PROXY")
-    return httpx.AsyncClient(proxy=proxy, timeout=15) if proxy else httpx.AsyncClient(timeout=15)
 
 
 @router.post("/bot-config")
@@ -927,8 +927,7 @@ async def get_webhook_info():
     token = s.tgBotToken if s else ""
     if not token:
         return {"ok": False, "error": "no token"}
-    import httpx
-    async with httpx.AsyncClient() as client:
+    async with _tg_client() as client:
         r = await client.get(f"https://api.telegram.org/bot{token}/getWebhookInfo")
         return r.json()
 
@@ -942,8 +941,7 @@ async def setup_webhook(url: str = Query(...)):
         return {"success": False, "error": "url parameter required"}
 
     webhook_url = f"{url.rstrip('/')}/webhook/tg"
-    import httpx
-    async with httpx.AsyncClient() as client:
+    async with _tg_client() as client:
         r = await client.post(
             f"https://api.telegram.org/bot{token}/setWebhook",
             json={
