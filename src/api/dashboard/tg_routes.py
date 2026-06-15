@@ -854,6 +854,12 @@ async def get_bot_config():
             pass
     return {"success": True, "masked": masked, "username": username, "ok": bool(username)}
 
+def _tg_client():
+    import os, httpx
+    proxy = os.getenv("TG_PROXY")
+    return httpx.AsyncClient(proxy=proxy, timeout=15) if proxy else httpx.AsyncClient(timeout=15)
+
+
 @router.post("/bot-config")
 async def set_bot_config(body: dict):
     token = body.get("token", "").strip()
@@ -861,7 +867,7 @@ async def set_bot_config(body: dict):
         return {"success": False, "error": "Неверный формат токена"}
 
     import httpx
-    async with httpx.AsyncClient() as client:
+    async with _tg_client() as client:
         r = await client.get(f"https://api.telegram.org/bot{token}/getMe")
         info = r.json()
     if not info.get("ok"):
@@ -872,7 +878,7 @@ async def set_bot_config(body: dict):
     # Delete old webhook
     if old_token and old_token != token:
         try:
-            async with httpx.AsyncClient() as client:
+            async with _tg_client() as client:
                 await client.post(f"https://api.telegram.org/bot{old_token}/deleteWebhook")
         except Exception:
             pass
