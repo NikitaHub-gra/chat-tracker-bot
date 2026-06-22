@@ -49,15 +49,6 @@ async def _get_tg_api() -> str:
     return f"https://api.telegram.org/bot{token}" if token else ""
 
 
-def _tg_client() -> httpx.AsyncClient:
-    """httpx client with optional SOCKS5 proxy (set TG_PROXY env var)."""
-    import os
-    proxy = os.getenv("TG_PROXY")
-    if proxy:
-        return httpx.AsyncClient(proxy=proxy, timeout=15)
-    return httpx.AsyncClient(timeout=15)
-
-
 # ── Auth Endpoints ──────────────────────────────────────────────────────────────
 
 @router.post("/request-code")
@@ -76,7 +67,7 @@ async def request_code(request: Request):
         return {"success": False, "error": "Bot token не настроен"}
 
     try:
-        async with _tg_client() as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(f"{tg_api}/sendMessage", json={
                 "chat_id": telegram_id,
                 "text": f"🔐 Код для входа в Реста Hub: <b>{code}</b>\n\nДействителен 5 минут. Никому не сообщайте этот код.",

@@ -4,6 +4,7 @@ import math
 import time
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
@@ -835,12 +836,6 @@ async def get_report_week():
     }
 
 
-def _tg_client():
-    import os, httpx
-    proxy = os.getenv("TG_PROXY")
-    return httpx.AsyncClient(proxy=proxy, timeout=15) if proxy else httpx.AsyncClient(timeout=15)
-
-
 # ── Bot Config ───────────────────────────────────────────────
 
 @router.get("/bot-config")
@@ -851,7 +846,7 @@ async def get_bot_config():
     username = None
     if token:
         try:
-            async with _tg_client() as client:
+            async with httpx.AsyncClient(timeout=15) as client:
                 r = await client.get(f"https://api.telegram.org/bot{token}/getMe")
                 info = r.json()
                 username = info.get("result", {}).get("username")
@@ -866,8 +861,7 @@ async def set_bot_config(body: dict):
     if not token or ":" not in token:
         return {"success": False, "error": "Неверный формат токена"}
 
-    import httpx
-    async with _tg_client() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(f"https://api.telegram.org/bot{token}/getMe")
         info = r.json()
     if not info.get("ok"):
@@ -878,7 +872,7 @@ async def set_bot_config(body: dict):
     # Delete old webhook
     if old_token and old_token != token:
         try:
-            async with _tg_client() as client:
+            async with httpx.AsyncClient(timeout=15) as client:
                 await client.post(f"https://api.telegram.org/bot{old_token}/deleteWebhook")
         except Exception:
             pass
@@ -927,7 +921,7 @@ async def get_webhook_info():
     token = s.tgBotToken if s else ""
     if not token:
         return {"ok": False, "error": "no token"}
-    async with _tg_client() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(f"https://api.telegram.org/bot{token}/getWebhookInfo")
         return r.json()
 
@@ -941,7 +935,7 @@ async def setup_webhook(url: str = Query(...)):
         return {"success": False, "error": "url parameter required"}
 
     webhook_url = f"{url.rstrip('/')}/webhook/tg"
-    async with _tg_client() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         r = await client.post(
             f"https://api.telegram.org/bot{token}/setWebhook",
             json={
