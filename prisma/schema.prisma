@@ -68,7 +68,7 @@ model BotSettings {
   id               Int      @id @default(autoincrement())
   // Telegram
   tgBotToken       String   @default("")
-  tgOwnerId        Int?
+  tgOwnerId        BigInt?
   tgTeamIds        String   @default("[]")
   // MAX
   maxBotToken      String   @default("")
@@ -132,7 +132,7 @@ model GroupMessage {
   messenger        String
   groupId          String
   msgId            String?
-  fromId           Int
+  fromId           BigInt
   fromName         String    @default("")
   text             String    @default("")
   sentAt           Int
@@ -243,7 +243,7 @@ model PlanFixConfig {
 
 model HubUser {
   id            Int        @id @default(autoincrement())
-  telegramId    Int        @unique
+  telegramId    BigInt     @unique
   username      String?
   firstName     String?
   lastName      String?
@@ -311,7 +311,7 @@ model NotifSnooze {
 
 model RegistrationRequest {
   id          Int      @id @default(autoincrement())
-  telegramId  Int      @unique
+  telegramId  BigInt   @unique
   username    String?
   firstName   String?
   lastName    String?
